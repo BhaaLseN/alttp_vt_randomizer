@@ -1,9 +1,12 @@
 namespace App.Graph;
 
 public record class Position(short X, short Y, short Z);
+// FIXME: we need a sprite class that does something.
 public record class Sprite(string Name)
 {
+    public byte?[] sheets = new byte?[4] { null, null, null, null };
     public static Sprite get(string name) => new (name);
+    public static IEnumerable<Sprite> all() => Enumerable.Empty<Sprite>();
 }
 
 /**

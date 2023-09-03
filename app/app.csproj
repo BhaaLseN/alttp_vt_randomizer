@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
@@ -6,6 +6,18 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
   </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Remove="Graph\BossShuffler.cs" />
+    <Compile Remove="Graph\EnemyShuffler.cs" />
+    <Compile Remove="Graph\EntranceShuffler.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="Graph\BossShuffler.cs" />
+    <None Include="Graph\EnemyShuffler.cs" />
+    <None Include="Graph\EntranceShuffler.cs" />
+  </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="YamlDotNet" Version="13.3.1" />

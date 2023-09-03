@@ -1,30 +1,5 @@
 namespace App.Graph;
 
-internal static class PHP
-{
-    public static Dictionary<TKey, TValue> Merge<TKey, TValue>(this IDictionary<TKey, TValue> array, params IDictionary<TKey, TValue>[] arrays)
-        where TKey : notnull
-    {
-        var result = new Dictionary<TKey, TValue>(array);
-        foreach (var (key, value) in arrays.SelectMany(d => d))
-            result.TryAdd(key, value);
-
-        return result;
-    }
-    public static Dictionary<TKey, TValue> Diff<TKey, TValue>(this IDictionary<TKey, TValue> array, params TValue[] arrays)
-        where TKey : notnull
-    {
-        var result = new Dictionary<TKey, TValue>(array);
-        var comparer = EqualityComparer<TValue>.Default;
-        foreach (var value in arrays.Select(d => d))
-            result.Remove(result.FirstOrDefault(e => comparer.Equals(e.Value, value)).Key);
-
-        return result;
-    }
-
-    public static IEnumerable<T> Shuffle<T>(this IEnumerable<T> source) => source.OrderBy(_ => Random.Shared.Next());
-}
-
 public sealed class YamlSprite
 {
     public Dictionary<string, object?> ToDictionary() => new(); // FIXME: read this from YAML.
@@ -142,7 +117,7 @@ sealed class BossShuffler
         };
 
         // force Kholdstare for swordless to be in Ice Palace
-        if (this.world.config("mode.weapons") == "swordless")
+        if (this.world.config<string>("mode.weapons") == "swordless")
         {
             // remove Ice Palace
             boss_locations.RemoveAt(9);
@@ -150,7 +125,7 @@ sealed class BossShuffler
         }
 
         List<string> place_bosses;
-        switch (this.world.config("enemizer.bossShuffle"))
+        switch (this.world.config<string>("enemizer.bossShuffle"))
         {
             case "random":
                 foreach (var location in boss_locations)
@@ -272,7 +247,7 @@ sealed class BossShuffler
         foreach (var sprite_definition in this.boss_location_map[bossRoom.name][boss])
         {
             this.world.graph.newVertex(
-                sprite_definition.ToDictionary().Merge(new Dictionary<string, object?>()
+                sprite_definition.ToDictionary().Merge(new Dictionary<string, object>()
                 {
                     { "type", "mob" },
                     //{ "sprite", Sprite.get(sprite_definition["sprite"]) },

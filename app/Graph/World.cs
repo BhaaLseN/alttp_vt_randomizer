@@ -12,11 +12,11 @@ sealed class World
     private List<Vertex> vertices;
     public readonly Inventory collected_items;
     private readonly ConcurrentDictionary<string, object> _config;
-    public Dictionary<string, List<string>> sprite_sheets = new()
+    public Dictionary<string, int[]> sprite_sheets = new()
     {
-        { "underworld", new() },
-        { "overworld", new() },
-        { "sets", new() },
+        { "underworld", new int[0] },
+        { "overworld", new int[0] },
+        { "sets", new int[0] },
     };
 
     /**

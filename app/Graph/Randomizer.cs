@@ -37,16 +37,16 @@ sealed class Randomizer
      */
     private readonly Dictionary<Vertex, Graph> key_door_edges = new();
     /** @var Collection<Vertex> */
-    private Collection vertices;
+    private readonly Dictionary<string, Vertex> vertices;
     private Inventory assumed_items;
     private Inventory collected_items;
-    public array found_locations;
+    public IEnumerable<Vertex> found_locations;
     public Vertex start;
     /** @var array<array<Vertex>> */
-    private array set_locations = ["*" => []];
+    private readonly Dictionary<string, List<Vertex>> set_locations = new() { { "*", new() } };
     private readonly World[] worlds;
     private readonly Dictionary<string, List<Vertex>> door_chains = new();
-    static array door_cache = [];
+    //static array door_cache = [];
 
     /**
      * Set up the Randomizer. This involves:
@@ -74,7 +74,6 @@ sealed class Randomizer
         {
             { this.start.name, this.start },
         };
-        this.set_locations = ["*" => []];
         this.collected_items = new Inventory();
 
         this.worlds = new World[configs.Length];
@@ -86,6 +85,7 @@ sealed class Randomizer
             var shop_filler = new ShopFiller(this.worlds[i]);
             shop_filler.adjustEdges();
 
+#if enabled
             var entrance_shuffler = new EntranceShuffler(this.worlds[i]);
             entrance_shuffler.adjustEdges();
 
@@ -97,7 +97,7 @@ sealed class Randomizer
             // This will handle challenge rooms
             var enemy_shuffler = new EnemyShuffler(this.worlds[i]);
             enemy_shuffler.adjustEdges();
-
+#endif
             var bunnifier = new BunnyGraphifier(this.worlds[i]);
             bunnifier.adjustEdges();
 
@@ -118,7 +118,7 @@ sealed class Randomizer
             this.set_locations["*"].Add(location);
             foreach (var set in location.itemset)
             {
-                this.set_locations[set] ??= [];
+                this.set_locations.TryAdd(set, new());
                 this.set_locations[set].Add(location);
             }
         }
@@ -178,7 +178,7 @@ sealed class Randomizer
     {
         var filler = new RandomAssumedFiller(this, new()
         {
-            { "accessibility", this.worlds.Select((world, idx) => (Key: idx, Value: world.config("accessibility"))).ToDictionary(k => k.Key, v => v.Value) },
+            { "accessibility", this.worlds.Select((world, idx) => (Key: idx, Value: world.config<string>("accessibility"))).ToDictionary(k => k.Key, v => (object)v.Value) },
         });
 
         var sets = new ItemPooler(this.worlds).getPool();
@@ -271,7 +271,7 @@ sealed class Randomizer
      */
     private IEnumerable<Vertex> recursiveDoorSearch(
         Graph search_graph,
-        List<Item> found,
+        IEnumerable<Vertex> found,
         Inventory collected,
         IEnumerable<Vertex> locked_doors,
         string key,
@@ -282,7 +282,7 @@ sealed class Randomizer
         if (collected.getCount(key) >= this.key_doors[key].Count)
         {
             var door_graphs = this.key_door_edges.Where(door_id => this.key_doors[key].Contains(door_id.Key)).Select(k => k.Value).ToArray();
-            var graph = this.searchGraph(collected, search_graph.merge(door_graphs), found);
+            var graph = this.searchGraph(collected, search_graph.merge(door_graphs), getItems(found));
             return graph.getVisited(this.start);
         }
 
@@ -298,28 +298,36 @@ sealed class Randomizer
                 sub_found_locations.Add(door, door_chain);
                 continue;
             }
-            var graph = this.searchGraph(collected, search_graph.merge(this.key_door_edges[door]), found);
+            var graph = this.searchGraph(collected, search_graph.merge(this.key_door_edges[door]), getItems(found));
             var found_locations = graph.getVisited(this.start).ToList();
-            var new_collected = collected.merge(this.collectItems(array_diff_key(found_locations, found)));
+            var new_collected = collected.merge(this.collectItems(found_locations.Except(found)));
             sub_found_locations.Add(door, found_locations);
             int new_found_keys = new_collected.getCount(key);
             if (locked_doors.Count() > 1 && new_found_keys > recursion_level)
             {
-                var all_found = array_merge(found_locations, found);
+                var all_found = found_locations.Concat(found);
                 sub_found_locations.Add(door, this.recursiveDoorSearch(
                     graph,
                     all_found,
                     new_collected,
-                    locked_doors.Except(new[] { door.id }),
+                    locked_doors.Except(new[] { door }),
                     key,
                     recursion_level + 1,
                     current_chain
-                ));
+                ).ToList());
             }
             this.door_chains.Add(chain_id, sub_found_locations[door]);
         }
 
-        return sub_found_locations.Any() ? array_intersect_key(array_values(sub_found_locations)) : found;
+        if (sub_found_locations.Any())
+        {
+            IEnumerable<Vertex> result = sub_found_locations.Values.First();
+            foreach (var other in sub_found_locations.Values.Skip(1))
+                result = result.Intersect(other);
+            return result;
+        }
+
+        return found;
     }
 
     /**
@@ -328,21 +336,22 @@ sealed class Randomizer
      *
      * @param Inventory collected Assumed collected items
      */
-    public array getStrongLocations(Inventory collected)
+    public IEnumerable<Vertex> getStrongLocations(Inventory collected)
     {
-        search_graph = this.searchGraph(collected);
-        found_locations = search_graph.getVisited(this.start);
+        var search_graph = this.searchGraph(collected);
+        var found_locations = search_graph.getVisited(this.start);
+        var new_found_locations = new List<Vertex>();
         do
         {
-            this.door_chains = [];
-            new_found_locations = [];
-            new_items = this.collectItems(found_locations);
-            new_collected = collected.merge(new_items);
-            search_graph = this.searchGraph(new_collected, null, found_locations);
-            foreach (var key => doors in this.key_doors) {
+            this.door_chains.Clear();
+            var new_items = this.collectItems(found_locations);
+            var new_collected = collected.merge(new_items);
+            search_graph = this.searchGraph(new_collected, null, getItems(found_locations));
+            foreach (var (key, doors) in this.key_doors)
+            {
                 if (new_collected.has(key))
                 {
-                    strong_locations = this.recursiveDoorSearch(
+                    var strong_locations = this.recursiveDoorSearch(
                         search_graph,
                         found_locations,
                         new_collected,
@@ -350,12 +359,12 @@ sealed class Randomizer
                         key,
                         1
                     );
-                    new_strong_locations = array_diff_key(strong_locations, found_locations);
-                    found_locations = array_merge(found_locations, new_strong_locations);
-                    new_found_locations = array_merge(new_found_locations, new_strong_locations);
+                    var new_strong_locations = strong_locations.Except(found_locations);
+                    found_locations = found_locations.Concat(new_strong_locations);
+                    new_found_locations.AddRange(new_strong_locations);
                 }
             }
-        } while (count(new_found_locations));
+        } while (new_found_locations.Any());
 
         return found_locations;
     }
@@ -365,7 +374,7 @@ sealed class Randomizer
      *
      * @param array<Item> items items to assume
      */
-    public void assumeItems(array items)
+    public void assumeItems(IEnumerable<Item> items)
     {
         this.assumed_items = new Inventory(items);
         this.found_locations = this.getStrongLocations(this.collected_items.merge(this.assumed_items));
@@ -383,30 +392,33 @@ sealed class Randomizer
      *
      * @return array<Vertex>
      */
-    public array getEmptyLocationsInSet(string item_set = "*", array item_sets = [], bool reachable = true)
+    public IEnumerable<Vertex> getEmptyLocationsInSet(string item_set = "*", Dictionary<string, int>? item_sets = null, bool reachable = true)
     {
-        empty_locations = array_filter(this.set_locations[item_set], function(vertex) use(reachable) {
-            return (!reachable || isset(this.found_locations[vertex.id])) && vertex.item == null;
+        var empty_locations = this.set_locations[item_set].Where((vertex) =>
+        {
+            return (!reachable || this.found_locations.Contains(vertex)) && vertex.item == null;
         });
 
-        foreach (var set_name => set_count in item_sets) {
+        item_sets ??= new();
+        foreach (var (set_name, set_count) in item_sets)
+        {
             if (set_name == "*")
             {
                 continue;
             }
-            set_locations = array_filter(this.set_locations[set_name], static function (location)
+            var set_locations = this.set_locations[set_name].Where(static (location) =>
             {
                 return location.item == null;
             });
-            if (count(set_locations) < set_count)
+            if (set_locations.Count() < set_count)
             {
-                throw new Exception("Not enough set locations available: set_name");
+                throw new Exception($"Not enough set locations available: {set_name}");
             }
             // if a set has the same number of items to place as set locations
             // left, remove it from this return.
-            if (item_set != set_name && count(set_locations) == set_count)
+            if (item_set != set_name && set_locations.Count() == set_count)
             {
-                empty_locations = array_diff(empty_locations, set_locations);
+                empty_locations = empty_locations.Except(set_locations);
             }
         }
 
@@ -421,7 +433,7 @@ sealed class Randomizer
      */
     public bool canReachLocation(string location_name)
     {
-        return isset(this.found_locations[this.vertices[location_name].id]);
+        return this.found_locations.Contains(this.vertices[location_name]);
     }
 
     /**
@@ -429,32 +441,38 @@ sealed class Randomizer
      *
      * @param array? locations filtered locations to check, otherwise all locations
      */
-    public array locationsWithItems(?array locations = null)
+    public IEnumerable<Vertex> locationsWithItems(IEnumerable<Vertex>? locations = null)
     {
-        return array_filter(locations ?? this.found_locations, fn (location) => location.item || location.trophy);
+        return (locations ?? this.found_locations).Where((location) => location.item is not null || location.trophy is not null);
     }
 
+    // return all items for locations that have items
+    private List<Item> getItems(IEnumerable<Vertex>? locations = null)
+    {
+        var items = new List<Item>();
+        var locationsWithItems = this.locationsWithItems(locations);
+        foreach (var location in locationsWithItems)
+        {
+            if (location.item is not null)
+            {
+                items.Add(location.item);
+            }
+            if (location.trophy is not null)
+            {
+                items.Add(location.trophy);
+            }
+        }
+        return items;
+    }
     /**
      * Search world and get all items that are found.
      *
      * @param array? locations filtered locations to check, otherwise all locations
      */
-    public Inventory collectItems(?array locations = null)
+    public Inventory collectItems(IEnumerable<Vertex>? locations = null)
     {
-        items = [];
-        locationsWithItems = this.locationsWithItems(locations);
-        foreach (var location in locationsWithItems)
-        {
-            if (location.item)
-            {
-                items[] = location.item;
-            }
-            if (location.trophy)
-            {
-                items[] = location.trophy;
-            }
-        }
-        return new Inventory(items);
+        var items = getItems(locations);
+        return new Inventory(items.ToArray());
     }
 
     /**
@@ -464,6 +482,6 @@ sealed class Randomizer
      */
     public Vertex? getLocation(string location_name)
     {
-        return this.vertices[location_name] ?? null;
+        return this.vertices.GetValueOrDefault(location_name);
     }
 }

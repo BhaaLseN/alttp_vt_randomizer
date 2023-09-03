@@ -8,7 +8,8 @@ class VertexCollector
     /**
      * This does not account for door rando.
      */
-    private const BUNNY_REVIVE = [
+    private static readonly string[] BUNNY_REVIVE =
+    {
         "Eastern Palace - Entrance",
         "Desert Palace - Main Room - Center",
         "Desert Palace - Right Entrance",
@@ -29,54 +30,7 @@ class VertexCollector
         "Turtle Rock - Laser Entrance",
         "Turtle Rock - Eye Bridge",
         "Ganon's Tower - Lobby",
-    ];
-
-    /**
-     * Get all vertices for a world and map static items to that world. Also
-     * given the world config, we may invert the moonpearl requirements here.
-     *
-     * @param World world world to attach preset items to
-     *
-     * @throws Exception if unable to read data files
-     */
-    public array getForWorld(World world)
-    {
-        vertex_files = array_filter(File.allFiles(app_path("Graph/data/Vertices/")), fn (f) => f.getExtension() == "php");
-        if (empty(vertex_files)) {
-            throw new Exception("Error reading underlying data");
-        }
-        world_id = world.id;
-        inverted = world.config("mode.state") == "inverted";
-        bunny_revive = in_array("dungeon_bunny_revival", world.config("tech", []));
-        names = [];
-
-        return array_map(static function (v) use (world_id, inverted, bunny_revive, &names) {
-            if (isset(v["itemset"])) {
-                v["itemset"] = array_map(fn (set) => "set:world_id", v["itemset"]);
-            }
-            if (isset(v["key"])) {
-                v["key"] = v["key"] . ":world_id";
-            }
-            if (inverted && isset(v["moonpearl"])) {
-                v["moonpearl"] = !v["moonpearl"];
-            }
-
-            if (bunny_revive && in_array(v["name"], BUNNY_REVIVE)) {
-                v["moonpearl"] = false;
-            }
-            new_name = "{v["name"]}:world_id";
-            if (isset(names[new_name])) {
-                throw new Exception("Vertex Name collision `new_name`");
-            }
-            names[new_name] = true;
-
-            return array_merge(v, [
-                "name" => "{v["name"]}:world_id",
-            ]);
-        }, Arr.flatten(array_map(static function (filename) {
-            return require(filename);
-        }, vertex_files), 1));
-    }
+    };
 
     /**
      * Get all vertices for a world and map static items to that world. Also
@@ -88,230 +42,189 @@ class VertexCollector
      */
     public List<Dictionary<string, object>> loadYmlData(World world)
     {
-        vertex_data = array_merge_recursive(
+        var vertex_data = array_merge_recursive(
             ymlReadDir(app_path("Graph/data/Vertices")),
-            world.config("vertex_data", [])
+            world.config("vertex_data", new List<Vertex>())
         );
 
-        world_id = world.id;
-        inverted = world.config("mode.state") == "inverted";
-        bunny_revive = in_array("dungeon_bunny_revival", world.config("tech", []));
-        names = [];
-        vertices = [];
+        int world_id = world.id;
+        bool inverted = world.config<string>("mode.state") == "inverted";
+        var bunny_revive = world.config("tech", new string[0]).Contains("dungeon_bunny_revival");
+        var names = new HashSet<string>();
+        var vertices = new List<Dictionary<string, object>>();
 
         // overworld
-        foreach (var map in vertex_data["maps"]) {
-            shared = [
-                "map" => map["map"],
-            ];
-            foreach (var meta in map["nodes"]["meta"] ?? []) {
-                vertices[] = array_merge(
-                    [
-                        "type" => "meta",
-                    ],
-                    meta
-                );
+        foreach (var map in vertex_data["maps"] ?? new List<Dictionary<string, object>>())
+        {
+            var shared = new Dictionary<string, object>()
+            {
+                { "map", map["map"] },
+            };
+            foreach (var meta in map["nodes"]["meta"] ?? new Dictionary<string, object>())
+            {
+                vertices.Add(shared
+                    .MergeOne("type", "meta")
+                    .Merge(meta));
             }
-            foreach (var prizepack in map["nodes"]["prizepacks"] ?? []) {
-                vertices[] = array_merge(
-                    [
-                        "type" => "prizepack",
-                    ],
-                    prizepack
-                );
+            foreach (var prizepack in map["nodes"]["prizepacks"] ?? new Dictionary<string, object>())
+            {
+                vertices.Add(prizepack
+                    .MergeOne("type", "prizepack"));
             }
-            foreach (var region in map["nodes"]["regions"] ?? []) {
-                vertices[] = array_merge(
-                    shared,
-                    [
-                        "moonpearl" => map["moonpearl"],
-                        "type" => "region",
-                    ],
-                    region
-                );
+            foreach (var region in map["nodes"]["regions"] ?? new Dictionary<string, object>())
+            {
+                vertices.Add(shared
+                    .MergeOne("moonpearl", map["moonpearl"])
+                    .MergeOne("type", "region")
+                    .Merge(region));
             }
-            foreach (var warp in map["nodes"]["warps"] ?? []) {
-                vertices[] = array_merge(
-                    shared,
-                    [
-                        "moonpearl" => map["moonpearl"],
-                        "type" => "warp",
-                    ],
-                    warp
-                );
+            foreach (var warp in map["nodes"]["warps"] ?? new Dictionary<string, object>())
+            {
+                vertices.Add(shared
+                    .MergeOne("moonpearl", map["moonpearl"])
+                    .MergeOne("type", "warp")
+                    .Merge(warp));
             }
-            foreach (var mob in map["nodes"]["mobs"] ?? []) {
+            foreach (var mob in map["nodes"]["mobs"] ?? new Dictionary<string, object>())
+            {
                 mob["sprite"] = Sprite.get(mob["sprite"]);
-                vertices[] = array_merge(
-                    shared,
-                    [
-                        "type" => "mob",
-                    ],
-                    mob
-                );
+                vertices.Add(shared
+                    .MergeOne("type", "mob")
+                    .Merge(mob));
             }
-            foreach (var item in map["nodes"]["items"] ?? []) {
-                vertices[] = array_merge(
-                    shared,
-                    [
-                        "type" => "item",
-                    ],
-                    item
-                );
+            foreach (var item in map["nodes"]["items"] ?? new Dictionary<string, object>())
+            {
+                vertices.Add(shared
+                    .MergeOne("type", "item")
+                    .Merge(item));
             }
-            foreach (var entrance in map["nodes"]["entrances"] ?? []) {
-                if (isset(entrance["entranceid"])) {
-                    vertices[] = array_merge(
-                        shared,
-                        [
-                            "name" => entrance["name"] . " - In",
-                            "entranceid" => entrance["entranceid"],
-                            "type" => "entrance",
-                        ]
-                    );
+            foreach (var entrance in map["nodes"]["entrances"] ?? new Dictionary<string, object>())
+            {
+                if (entrance.TryGetValue("entranceid", out var entranceid))
+                {
+                    vertices.Add(shared
+                        .MergeOne("name", entrance["name"] + " - In")
+                        .MergeOne("entranceid", entranceid)
+                        .MergeOne("type", "entrance"));
                 }
-                if (isset(entrance["outletid"])) {
-                    vertices[] = array_merge(
-                        shared,
-                        [
-                            "name" => entrance["name"] . " - Out",
-                            "outletid" => entrance["outletid"],
-                            "type" => "outlet",
-                        ]
-                    );
+                if (entrance.TryGetValue("outletid", out var outletid))
+                {
+                    vertices.Add(shared
+                        .MergeOne("name", entrance["name"] + " - Out")
+                        .MergeOne("outletid", outletid)
+                        .MergeOne("type", "outlet"));
                 }
             }
             // consider merging Holes into entrances
-            foreach (var entrance in map["nodes"]["holes"] ?? []) {
-                vertices[] = array_merge(
-                    shared,
-                    [
-                        "name" => entrance["name"],
-                        "entranceids" => entrance["entranceids"],
-                        "type" => "hole",
-                    ]
-                );
+            foreach (var entrance in map["nodes"]["holes"] ?? new Dictionary<string, object>())
+            {
+                vertices.Add(shared
+                    .MergeOne("name", entrance["name"])
+                    .MergeOne("entranceids", entrance["entranceids"])
+                    .MergeOne("type", "hole"));
             }
         }
 
         // underworld
-        foreach (var room in vertex_data["rooms"]) {
-            shared = [
-                "roomid" => room["roomid"],
-                "group" => room["group"] ?? 0,
-                "dark" => room["dark"] ?? false,
-            ];
-            foreach (var region in room["nodes"]["regions"] ?? []) {
-                vertices[] = array_merge(
-                    shared,
-                    [
-                        "type" => "region",
-                    ],
-                    region
-                );
-                if (isset(region["inletid"])) {
-                    vertices[] = array_merge(
-                        shared,
-                        [
-                            "name" => region["name"] . " - Exit",
-                            "inletid" => region["inletid"],
-                        ]
-                    );
+        foreach (var room in vertex_data["rooms"] ?? new List<Dictionary<string, object>>())
+        {
+            var shared = new Dictionary<string, object>()
+            {
+                { "roomid", room["roomid"] },
+                { "group", room.GetValueOrDefault("group") ?? 0 },
+                { "dark", room.GetValueOrDefault("dark") ?? false },
+            };
+            foreach (var region in room["nodes"]["regions"] ?? new Dictionary<string, object>())
+            {
+                vertices.Add(shared
+                    .MergeOne("type", "region")
+                    .Merge(region));
+                if (region.TryGetValue("inletid", out var inletid))
+                {
+                    vertices.Add(shared
+                    .MergeOne("name", region["name"] + " - Exit")
+                    .MergeOne("inletid", inletid));
                 }
             }
-            foreach (var mob in room["nodes"]["mobs"] ?? []) {
+            foreach (var mob in room["nodes"]["mobs"] ?? new Dictionary<string, object>())
+            {
                 mob["sprite"] = Sprite.get(mob["sprite"]);
-                vertices[] = array_merge(
-                    shared,
-                    [
-                        "type" => "mob",
-                    ],
-                    mob
-                );
+                vertices.Add(shared
+                    .MergeOne("type", "mob")
+                    .Merge(mob));
             }
-            foreach (var item in room["nodes"]["items"] ?? []) {
-                vertices[] = array_merge(
-                    shared,
-                    [
-                        "type" => "item",
-                    ],
-                    item
-                );
+            foreach (var item in room["nodes"]["items"] ?? new Dictionary<string, object>())
+            {
+                vertices.Add(shared
+                    .MergeOne("type", "item")
+                    .Merge(item));
             }
-            foreach (var keydoor in room["nodes"]["keydoors"] ?? []) {
-                vertices[] = array_merge(
-                    shared,
-                    [
-                        "type" => "keydoor",
-                    ],
-                    keydoor
-                );
+            foreach (var keydoor in room["nodes"]["keydoors"] ?? new Dictionary<string, object>())
+            {
+                vertices.Add(shared
+                    .MergeOne("type", "keydoor")
+                    .Merge(keydoor));
             }
-            foreach (var bigkeydoor in room["nodes"]["bigkeydoors"] ?? []) {
-                vertices[] = array_merge(
-                    shared,
-                    [
-                        "type" => "bigkeydoor",
-                    ],
-                    bigkeydoor
-                );
+            foreach (var bigkeydoor in room["nodes"]["bigkeydoors"] ?? new Dictionary<string, object>())
+            {
+                vertices.Add(shared
+                    .MergeOne("type", "bigkeydoor")
+                    .Merge(bigkeydoor));
             }
-            foreach (var shutter in room["nodes"]["shutters"] ?? []) {
-                vertices[] = array_merge(
-                    shared,
-                    [
-                        "type" => "shutter",
-                    ],
-                    shutter
-                );
+            foreach (var shutter in room["nodes"]["shutters"] ?? new Dictionary<string, object>())
+            {
+                vertices.Add(shared
+                    .MergeOne("type", "shutter")
+                    .Merge(shutter));
             }
-            foreach (var pot in room["nodes"]["pots"] ?? []) {
-                vertices[] = array_merge(
-                    shared,
-                    [
-                        "type" => "pot",
-                    ],
-                    pot
-                );
+            foreach (var pot in room["nodes"]["pots"] ?? new Dictionary<string, object>())
+            {
+                vertices.Add(shared
+                    .MergeOne("type", "pot")
+                    .Merge(pot));
             }
             // TODO: how do we want to handle this?
-            foreach (var item in room["nodes"]["inventory"] ?? []) {
-                vertices[] = array_merge(
-                    shared,
-                    item
-                );
+            foreach (var item in room["nodes"]["inventory"] ?? new Dictionary<string, object>())
+            {
+                vertices.Add(shared
+                    .Merge(item));
             }
 
-            if (room["bosses"] ?? false) {
-                foreach (var from => sprites in room["bosses"]) {
-                    // do stuff
-                }
-            }
+            //if (room["bosses"] ?? false)
+            //{
+            //    foreach (var (from, sprites) in room["bosses"]) {
+            //        // do stuff
+            //    }
+            //}
         }
 
-        return array_map(static function (v) use (world_id, inverted, bunny_revive, &names) {
-            if (isset(v["itemset"])) {
-                v["itemset"] = array_map(fn (set) => "set:world_id", v["itemset"]);
+        return vertices.Select((v) =>
+        {
+            if (v.TryGetValue("itemset", out var itemSetO) && itemSetO is string[] itemSet)
+            {
+                v["itemset"] = itemSet.Select((set) => $"{set}:{world_id}").ToArray();
             }
-            if (isset(v["key"])) {
-                v["key"] = v["key"] . ":world_id";
+            if (v.TryGetValue("key", out var keyO) && keyO is string key)
+            {
+                v["key"] = $"{key}:{world_id}";
             }
-            if (inverted && isset(v["moonpearl"])) {
-                v["moonpearl"] = !v["moonpearl"];
+            if (inverted && v.TryGetValue("moonpearl", out var moonpearlO) && moonpearlO is bool moonpearl)
+            {
+                v["moonpearl"] = !moonpearl;
             }
 
-            if (bunny_revive && in_array(v["name"], BUNNY_REVIVE)) {
+            if (bunny_revive && BUNNY_REVIVE.Contains(v["name"]))
+            {
                 v["moonpearl"] = false;
             }
-            new_name = "{v["name"]}:world_id";
-            if (isset(names[new_name])) {
-                throw new Exception("Vertex Name collision `new_name`");
+            string new_name = $"{v["name"]}:{world_id}";
+            if (!names.Add(new_name))
+            {
+                throw new Exception($"Vertex Name collision `{new_name}`");
             }
-            names[new_name] = true;
 
-            return array_merge(v, [
-                "name" => "{v["name"]}:world_id",
-            ]);
-        }, vertices);
+            v["name"] = $"{v["name"]}:{world_id}";
+            return v;
+        }).ToList();
     }
 }

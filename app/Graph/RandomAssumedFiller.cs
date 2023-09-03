@@ -9,7 +9,7 @@ using ItemSet = Dictionary<string, /* WeightedSet */ Dictionary<int, List<Item>>
 sealed class RandomAssumedFiller
 {
     private readonly Randomizer randomizer;
-    private readonly Dictionary<string, Dictionary<int, object>> config = [];
+    private readonly Dictionary<string, Dictionary<int, object>> config = new();
     /**
      * Create graph filler.
      * 
@@ -112,7 +112,7 @@ sealed class RandomAssumedFiller
         foreach (var (item_set, _, item) in fill_items) {
             if (current_key != item_set)
             {
-                locations = this.randomizer.getEmptyLocationsInSet(item_set, [], false).Shuffle().ToList();
+                locations = this.randomizer.getEmptyLocationsInSet(item_set, null, false).Shuffle().ToList();
                 current_key = item_set;
             }
 

@@ -60,14 +60,15 @@ sealed class BunnyGraphifier
         var meta = graph.getVertex("Meta:" + world_id);
         graph.addDirected(meta!, moonpearl, "MoonPearl:" + world_id);
 
-        foreach (var (light_item, dark_item) in ITEM_MAP) {
+        foreach (var (light_item, dark_item) in ITEM_MAP)
+        {
             var dark_vertex = graph.newVertex(new() {
-                { "name", "dark_item:" + world_id },
+                { "name", $"{dark_item}:{world_id}" },
                 { "type", "meta" },
-                { "item", Item.get("dark_item", world_id) },
+                { "item", Item.get(dark_item, world_id) },
             });
 
-            this.world.graph.addDirected(moonpearl, dark_vertex, "light_item:world_id");
+            this.world.graph.addDirected(moonpearl, dark_vertex, $"{light_item}:{world_id}");
         }
     }
 
@@ -84,16 +85,15 @@ sealed class BunnyGraphifier
         var edge_map = this.world.graph.getEdges()
             .GroupBy(o => o.From)
             .ToDictionary(g => g.Key, g => g.ToList());
-            //.ToLookup(o => o.From);
+        //.ToLookup(o => o.From);
 
         var work_queue = new Queue<Vertex>(dark_nodes);
         var marked = new HashSet<Vertex>();
 
-        while (work_queue.Count > 0) {
-            /** @var Vertex node */
-            var node = work_queue.Dequeue();
-
-            if (marked.Contains(node)) {
+        while (work_queue.TryDequeue(out var node))
+        {
+            if (marked.Contains(node))
+            {
                 continue;
             }
             marked.Add(node);

@@ -5,7 +5,7 @@ namespace App.Graph;
  */
 sealed class EnemyShuffler
 {
-    static Dictionary<string, string[]> CHALLENGE_ROOMS = new Dictionary<string, string[]> {
+    private static readonly Dictionary<string, string[]> CHALLENGE_ROOMS = new Dictionary<string, string[]> {
         { "Mini Moldorm Cave Entrance", new[] {
             "Mini Moldorm Cave - Mini Moldorm 1",
             "Mini Moldorm Cave - Mini Moldorm 2",
@@ -241,17 +241,17 @@ sealed class EnemyShuffler
             "Mimic Cave Entrance - Green Eyegore BR",
         }},
     };
-    byte[] PIT_ROOMS = {
+    private static readonly byte[] PIT_ROOMS = {
         0x01,
     };
-    short[] TONGUE_ROOMS = {
+    private static readonly short[] TONGUE_ROOMS = {
         0x0004,
         0x00CE,
         0x003F,
     };
 
     // remove this and use the same alg for UW enemies
-    Dictionary<byte, byte?[]> OW_MAP_SHEETS = new() {
+    private readonly Dictionary<byte, byte?[]> OW_MAP_SHEETS = new() {
         { 0x02, new byte?[] { 0x0F, null, 0x4A, null } },
         { 0x03, new byte?[] { null, null, 0x12, 0x10 } },
         { 0x14, new byte?[] { 0x0E, null, null, null } },
@@ -263,9 +263,11 @@ sealed class EnemyShuffler
         { 0x5E, new byte?[] { null, null, null, 0x19 } },
     };
 
-    private readonly array defeats;
+    private readonly Dictionary<string, List<string>> defeats = new();
     private readonly array challenge_enemies;
-    private readonly array no_place_sprites;
+    private readonly List<string> no_place_sprites;
+
+    private readonly World world;
 
     /**
      * Add all the vertices to the graph for this region.
@@ -279,82 +281,98 @@ sealed class EnemyShuffler
      *
      * @return void
      */
-    public function __construct(private World world)
+    public EnemyShuffler(World world)
     {
+        this.world = world;
         this.defeats = Yaml.parse(file_get_contents(app_path("Graph/data/Enemizer/enemies.yml"))) ?? [];
         this.challenge_enemies = Yaml.parse(file_get_contents(app_path("Graph/data/Enemizer/challenge.yml"))) ?? [];
         this.no_place_sprites = Yaml.parse(file_get_contents(app_path("Graph/data/Enemizer/noplace.yml"))) ?? [];
 
-        world_id = this.world.id;
-        foreach (var token in array_keys(this.defeats)) {
-            this.world.graph.newVertex([
-                "name" => "token:world_id",
-                "type" => "meta",
-                "item" => Item.get(token, world_id),
-            ]);
+        int world_id = this.world.id;
+        foreach (var token in this.defeats.Keys)
+        {
+            this.world.graph.newVertex(new()
+            {
+                { "name", $"{token}:{world_id}" },
+                { "type", "meta" },
+                { "item", Item.get(token, world_id) },
+            });
         }
 
-        enemies = world.getLocationsOfType("mob");
+        var enemies = world.getLocationsOfType("mob");
 
         /** @var array enemy_rooms */
-        enemy_rooms = enemies.groupBy(fn (enemy) => enemy.roomid);
+        var enemy_rooms = enemies.ToLookup((enemy) => enemy.roomid);
         /** @var array enemy_ows */
-        enemy_ows = enemies.groupBy(fn (enemy) => enemy.map);
+        var enemy_ows = enemies.ToLookup((enemy) => enemy.map);
 
         // Set up sprite sheets
-        sheetable_sprites = Sprite.all().filter(
-            fn (s) => count(array_filter(s.sheets, fn (v) => v != null)) != 0
+        var sheetable_sprites = Sprite.all().Where(
+            (s) => s.sheets.Count((v) => v != null) != 0
         );
         // sprites that can be moved to any room as they don"t have any sheet
         // requirements
-        nosheet_sprites = Sprite.all().filter(
-            fn (s) => count(array_filter(s.sheets, fn (v) => v != null)) == 0
-                && !in_array(s.name, this.no_place_sprites)
-        ).all();
+        var nosheet_sprites = Sprite.all().Where(
+            (s) => s.sheets.Count((v) => v != null) == 0
+                && this.no_place_sprites.Contains(s.Name)
+        );
 
-        sheet_sets = array_fill(0, 124, [null, null, null, null]);
-        sheets_to_sprites = array_fill(0, 124, nosheet_sprites);
+        var sheet_sets = Enumerable.Repeat(new byte?[] { null, null, null, null }, 124).ToArray();
+        var sheets_to_sprites = Enumerable.Repeat(nosheet_sprites.ToArray(), 124).ToArray();
 
-        room_sheets = [];
-        ow_sheets = [];
+        var room_sheets = new int[0x180];
+        var ow_sheets = new int[0x80];
 
         // deal with OW required sheet sets (j carries over to next block, it"s
         // important for filling the array properly)
-        j = 0;
-        foreach (var map => ow_set in OW_MAP_SHEETS) {
+        int j = 0;
+        foreach (var (map, ow_set) in OW_MAP_SHEETS)
+        {
             ow_sheets[map] = j;
             sheet_sets[j] = ow_set;
             j++;
         }
 
-        if (world.config("enemizer.enemyShuffle") == "none") {
-            for (i = 0; i < 0x80; i++) {
-                if (!isset(enemy_ows[i]) || count(enemy_ows[i]) == 0) {
+        if (world.config<string>("enemizer.enemyShuffle") == "none")
+        {
+            for (int i = 0; i < 0x80; i++)
+            {
+                if (enemy_ows[i].Count() == 0)
+                {
                     ow_sheets[i] = 0xFF;
                     continue;
                 }
-                if (!isset(ow_sheets[i])) {
-                    fixed_set = [];
-                    enemies = enemy_ows[i].map(fn (e) => e.sprite).all();
-                    foreach (var sprite in enemies) {
-                        filtered_sprite = array_filter(sprite.sheets, fn (v) => v != null);
-                        filtered_set = array_filter(fixed_set, fn (v) => v != null);
+                if (ow_sheets[i] != 0x00) // TODO: is zero valid?
+                {
+                    var fixed_set = [];
+                    var enemySprites = enemy_ows[i].Select((e) => e.sprite);
+                    foreach (var sprite in enemySprites)
+                    {
+                        var filtered_sprite = sprite.sheets.Where((v) => v != null);
+                        var filtered_set = fixed_set.Where((v) => v != null);
                         fixed_set = array_replace([null, null, null, null], filtered_set, filtered_sprite);
                     }
-                    if (empty(array_filter(fixed_set, fn (v) => v != null))) {
+                    if (!fixed_set.Any((v) => v != null))
+                    {
                         continue;
                     }
-                    for (k = 0; k < j; ++k) {
+                    bool foundSheet = false;
+                    for (int k = 0; k < j; ++k)
+                    {
                         if (
                             (fixed_set[0] == null || sheet_sets[k][0] == fixed_set[0])
                             && (fixed_set[1] == null || sheet_sets[k][1] == fixed_set[1])
                             && (fixed_set[2] == null || sheet_sets[k][2] == fixed_set[2])
                             && (fixed_set[3] == null || sheet_sets[k][3] == fixed_set[3])
-                        ) {
+                        )
+                        {
                             ow_sheets[i] = k;
-                            continue 2;
+                            foundSheet = true;
+                            break;
                         }
                     }
+                    if (foundSheet)
+                        continue;
                     sheet_sets[j] = fixed_set;
                     ow_sheets[i] = j;
                     ++j;
@@ -365,145 +383,180 @@ sealed class EnemyShuffler
         // force fixed room sets! If we have a few "no move" sprites in a room
         // we need to guarantee that a sheet set exists for that room to look
         // correct.
-        for (i = 0; i < 0x180; i++) {
-            if (!isset(enemy_rooms[i]) || count(enemy_rooms[i]) == 0) {
+        for (int i = 0; i < 0x180; i++)
+        {
+            if (!enemy_rooms[i].Any())
+            {
                 continue;
             }
-            filtered = enemy_rooms[i].filter(
-                fn (e) => world.config("enemizer.enemyShuffle") == "none"
-                    || in_array(e.sprite.name, this.no_place_sprites)
+            var filtered = enemy_rooms[i].Where(
+                 (e) => world.config<string>("enemizer.enemyShuffle") == "none"
+                    || this.no_place_sprites.Contains(e.sprite.Name)
             );
-            if (count(filtered) == 0) {
+            if (!filtered.Any())
+            {
                 continue;
             }
-            fixed_set = [];
-            enemies = filtered.map(fn (e) => e.sprite).all();
-            foreach (var sprite in enemies) {
-                filtered_sprite = array_filter(sprite.sheets, fn (v) => v != null);
-                filtered_set = array_filter(fixed_set, fn (v) => v != null);
+            var fixed_set = [];
+            var enemySprites = filtered.Select((e) => e.sprite);
+            foreach (var sprite in enemySprites)
+            {
+                var filtered_sprite = sprite.sheets.Where((v) => v != null);
+                var filtered_set = fixed_set.Where((v) => v != null);
                 fixed_set = array_replace([null, null, null, null], filtered_set, filtered_sprite);
             }
-            if (empty(array_filter(fixed_set, fn (v) => v != null))) {
+            if (!fixed_set.Any((v) => v != null))
+            {
                 continue;
             }
+            bool foundSheet = false;
             // potential bug here where fixed set is full, we may end up making 2+ copies in table
-            if (world.config("enemizer.enemyShuffle") == "none" || get_random_int(0, 1)) {
-                for (k = 0; k < j; ++k) {
+            if (world.config<string>("enemizer.enemyShuffle") == "none" || Random.Shared.Next(1) == 1)
+            {
+                for (int k = 0; k < j; ++k)
+                {
                     if (
                         (fixed_set[0] == null || sheet_sets[k][0] == fixed_set[0])
                         && (fixed_set[1] == null || sheet_sets[k][1] == fixed_set[1])
                         && (fixed_set[2] == null || sheet_sets[k][2] == fixed_set[2])
                         && (fixed_set[3] == null || sheet_sets[k][3] == fixed_set[3])
-                    ) {
+                    )
+                    {
                         room_sheets[i] = k;
-                        continue 2;
+                        foundSheet = true;
+                        break;
                     }
                 }
             }
+            if (foundSheet)
+                continue;
+
             sheet_sets[j] = fixed_set;
             room_sheets[i] = j;
             ++j;
         }
 
         // fill in all sheet sets with valid layouts for sprites
-        for (i = 0; i < 124; ++i) {
-            while (in_array(null, sheet_sets[i], true)) {
-                sprite = sheetable_sprites.random();
+        for (int i = 0; i < 124; ++i)
+        {
+            while (sheet_sets[i].Contains(null))
+            {
+                var sprite = sheetable_sprites.Shuffle().First();
                 if (
                     (sprite.sheets[0] == null || sheet_sets[i][0] == null)
                     && (sprite.sheets[1] == null || sheet_sets[i][1] == null)
                     && (sprite.sheets[2] == null || sheet_sets[i][2] == null)
                     && (sprite.sheets[3] == null || sheet_sets[i][3] == null)
-                ) {
-                    filtered_sprite = array_filter(sprite.sheets, fn (v) => v != null);
-                    filtered_set = array_filter(sheet_sets[i], fn (v) => v != null);
+                )
+                {
+                    var filtered_sprite = sprite.sheets.Where((v) => v != null);
+                    var filtered_set = sheet_sets[i].Where((v) => v != null);
                     sheet_sets[i] = array_replace([null, null, null, null], filtered_set, filtered_sprite);
                 }
             }
         }
 
         // find all the sprites that can be placed validly with a particular sheet set.
-        foreach (var sprite in sheetable_sprites) {
-            foreach (var i => set in sheet_sets) {
+        foreach (var sprite in sheetable_sprites)
+        {
+            foreach (var (i, set) in sheet_sets.Select((s, i) => (i, s))) {
                 if (
-                    world.config("enemizer.enemyShuffle") != "none"
+                    world.config<string>("enemizer.enemyShuffle") != "none"
                     && (sprite.sheets[0] == null || set[0] == sprite.sheets[0])
                     && (sprite.sheets[1] == null || set[1] == sprite.sheets[1])
                     && (sprite.sheets[2] == null || set[2] == sprite.sheets[2])
                     && (sprite.sheets[3] == null || set[3] == sprite.sheets[3])
-                    && !in_array(sprite.name, this.no_place_sprites)
-                ) {
-                    sheets_to_sprites[i][sprite.name] = sprite;
+                    && !this.no_place_sprites.Contains(sprite.Name)
+                )
+                {
+                    sheets_to_sprites[i][sprite.Name] = sprite;
                 }
             }
         }
 
-        all_challenge_enemies = array_map(fn (e) => "e:{this.world.id}", Arr.flatten(CHALLENGE_ROOMS));
-        for (i = 0; i < 0x180; i++) {
-            if (!isset(enemy_rooms[i]) || count(enemy_rooms[i]) == 0) {
+        var all_challenge_enemies = CHALLENGE_ROOMS.Values.Select((e) => $"{e}:{this.world.id}");
+        for (int i = 0; i < 0x180; i++)
+        {
+            int sheet;
+            if (!enemy_rooms[i].Any())
+            {
                 room_sheets[i] = 0x00;
                 continue;
             }
-            if (!isset(room_sheets[i])) {
-                do {
-                    sheet = get_random_key(sheets_to_sprites);
-                } while (count(sheets_to_sprites[sheet]) == 0);
+            if (room_sheets[i] == 0x00)  // TODO: is zero valid?
+            {
+                do
+                {
+                    sheet = Random.Shared.Next(sheets_to_sprites.Length);
+                } while (!sheets_to_sprites[sheet].Any());
                 room_sheets[i] = sheet;
             }
             sheet = room_sheets[i];
-            filtered_placable = enemy_rooms[i].filter(
-                fn (e) => world.config("enemizer.enemyShuffle") != "none"
-                    && !in_array(e.sprite.name, this.no_place_sprites)
+            var filtered_placable = enemy_rooms[i].Where(
+                (e) => world.config<string>("enemizer.enemyShuffle") != "none"
+                    && !this.no_place_sprites.Contains(e.sprite.Name)
             );
-            if (count(filtered_placable) == 0) {
+            if (!filtered_placable.Any())
+            {
                 continue;
             }
-            foreach (var enemy in filtered_placable) {
-                if (in_array(enemy.name, all_challenge_enemies)) {
-                    new = get_random_element(array_filter(
-                        sheets_to_sprites[sheet],
-                        fn (sprite) => in_array(sprite.name, this.challenge_enemies)
-                    ));
-                    if (!new) {
+            foreach (var enemy in filtered_placable)
+            {
+                Sprite newSprite;
+                if (all_challenge_enemies.Contains(enemy.name))
+                {
+                    newSprite = sheets_to_sprites[sheet].Where(
+                        (sprite) => this.challenge_enemies.Contains(sprite.Name)
+                    ).Shuffle().FirstOrDefault();
+                    if (newSprite is null)
+                    {
                         throw new Exception("ugh");
                     }
-                } else {
-                    new = get_random_element(sheets_to_sprites[sheet]);
+                }
+                else
+                {
+                    newSprite = get_random_element(sheets_to_sprites[sheet]);
                 }
                 //Log.debug(vsprintf("%s: placing %s", [
-                    enemy.name,
-                    new.getNiceName(),
-                ]));
-                enemy.sprite = new;
+                //    enemy.name,
+                //    newSprite.getNiceName(),
+                //]));
+                enemy.sprite = newSprite;
             }
         }
 
-        for (i = 0; i < 0x80; i++) {
-            if (!isset(enemy_ows[i]) || count(enemy_ows[i]) == 0) {
+        for (int i = 0; i < 0x80; i++)
+        {
+            if (!enemy_ows[i].Any())
+            {
                 ow_sheets[i] = 0xFF;
                 continue;
             }
-            if (!isset(ow_sheets[i])) {
-                do {
+            if (ow_sheets[i] == 0x00) // TODO: is zero valid?
+            {
+                do
+                {
                     sheet = get_random_key(sheets_to_sprites);
-                } while (count(sheets_to_sprites[sheet]) == 0);
+                } while (!sheets_to_sprites[sheet].Any());
                 ow_sheets[i] = sheet;
             }
             sheet = ow_sheets[i];
-            filtered_placable = enemy_ows[i].filter(
-                fn (e) => world.config("enemizer.enemyShuffle") != "none"
-                    && !in_array(e.sprite.name, this.no_place_sprites)
+            var filtered_placable = enemy_ows[i].Where(
+                (e) => world.config<string>("enemizer.enemyShuffle") != "none"
+                    && !this.no_place_sprites.Contains(e.sprite.Name)
             );
-            if (count(filtered_placable) == 0) {
+            if (count(filtered_placable) == 0)
+            {
                 continue;
             }
-            foreach (var enemy in filtered_placable) {
-                new = get_random_element(sheets_to_sprites[sheet]);
+            foreach (var enemy in filtered_placable)
+            {
+                var newSprite = get_random_element(sheets_to_sprites[sheet]);
                 //Log.debug(vsprintf("%s: placing %s", [
-                    enemy.name,
-                    new.getNiceName(),
-                ]));
-                enemy.sprite = new;
+                //    enemy.name,
+                //    newSprite.getNiceName(),
+                //]));
+                enemy.sprite = newSprite;
             }
         }
         ksort(ow_sheets);
@@ -515,19 +568,18 @@ sealed class EnemyShuffler
         );
 
         // pick random sheets where we have options
-        sheet_sets = array_map(
-            fn (set) => array_map(
-                fn (sheet) => is_array(sheet) get_random_element?(sheet) : sheet,
-                set
-            ),
-            sheet_sets
+        sheet_sets = sheet_sets.Select(
+            (set) => set.Select(
+                (sheet) => is_array(sheet) ? get_random_element(sheet) : sheet
+            )
         );
 
-        world.sprite_sheets = [
-            "underworld" => array_map(fn (s) => s - 0x40, room_sheets),
-            "overworld" => ow_sheets,
-            "sets" => sheet_sets,
-        ];
+        world.sprite_sheets = new()
+        {
+            { "underworld", room_sheets.Select((s) => s - 0x40).ToArray() },
+            { "overworld", ow_sheets },
+            { "sets", sheet_sets },
+        };
     }
 
     /**
@@ -537,23 +589,28 @@ sealed class EnemyShuffler
      */
     public void adjustEdges()
     {
-        from = this.world.getLocation("Meta");
-        world_id = this.world.id;
-        foreach (var token => items in this.defeats) {
-            to = this.world.graph.getVertex(token . ":world_id");
-            foreach (var item in items) {
+        var from = this.world.getLocation("Meta");
+        int world_id = this.world.id;
+        foreach (var (token, items) in this.defeats)
+        {
+            var to = this.world.graph.getVertex($"{token}:{world_id}");
+            foreach (var item in items)
+            {
                 this.world.graph.addDirected(from, to, "item:world_id");
             }
         }
 
-        foreach (var room => enemies in CHALLENGE_ROOMS) {
+        foreach (var (room, enemies) in CHALLENGE_ROOMS)
+        {
             from = this.world.getLocation(room);
-            foreach (var enemy in enemies) {
-                to = this.world.getLocation(enemy);
-                if (!to) {
-                    dd([enemy, to]);
+            foreach (var enemy in enemies)
+            {
+                var to = this.world.getLocation(enemy);
+                if (to is null)
+                {
+                    throw new Exception($"Cannot find location for {enemy}: {to}");
                 }
-                take = "Defeat" . to.sprite.name . ":world_id";
+                string take = $"Defeat{to.sprite.Name}:{world_id}";
                 this.world.graph.addDirected(from, to, take);
             }
         }
