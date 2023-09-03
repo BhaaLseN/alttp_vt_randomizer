@@ -9,27 +9,27 @@ rooms:
 
       items:
         - name: "Paradox Cave Lower - Far Left"
-          address: [0xEB2A]
+          addresses: [0xEB2A]
           type: "chest"
           itemset: ["lw"]
 
         - name: "Paradox Cave Lower - Left"
-          address: [0xEB2D]
+          addresses: [0xEB2D]
           type: "chest"
           itemset: ["lw"]
 
         - name: "Paradox Cave Lower - Right"
-          address: [0xEB30]
+          addresses: [0xEB30]
           type: "chest"
           itemset: ["lw"]
 
         - name: "Paradox Cave Lower - Far Right"
-          address: [0xEB33]
+          addresses: [0xEB33]
           type: "chest"
           itemset: ["lw"]
 
         - name: "Paradox Cave Lower - Middle"
-          address: [0xEB36]
+          addresses: [0xEB36]
           type: "chest"
           itemset: ["lw"]
 

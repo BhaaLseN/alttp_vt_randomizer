@@ -236,9 +236,6 @@ public partial class ItemEntry
 
     [YamlMember(Alias = "itemset")]
     public List<string> Itemset { get; set; } = new();
-
-    [YamlMember(Alias = "address")]
-    public List<long> Address { get; set; } = new();
 }
 
 public partial class Warp
