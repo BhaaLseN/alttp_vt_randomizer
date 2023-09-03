@@ -8,6 +8,7 @@ public class YamlReader
     public static string DataRoot { get; set; } = "";
 
     public static string ItemsPath = "items.yml";
+    public static string VerticesPath = "Vertices";
 
     class YamlItem
     {
@@ -95,15 +96,12 @@ public class YamlReader
         }
     }
 
-    public static Vertices LoadVerticesFromDirectory(string path)
+    public static Vertices LoadVerticesFromDirectory()
     {
         Vertices result = new();
 
-        foreach (string file in Directory.GetFiles(Path.Join(DataRoot, path), "*.yml", SearchOption.AllDirectories))
+        foreach (string file in Directory.GetFiles(Path.Join(DataRoot, VerticesPath), "*.yml", SearchOption.AllDirectories))
         {
-            // TODO: Load those XX files with prizepacks and meta nodes
-            if (file.Contains("XX-")) continue;
-
             var current_file_edges = LoadVerticesFromFile(file);
             MergeVertices(result, current_file_edges);
         }
@@ -128,17 +126,17 @@ public class DirectedUndirectedPair
 public class ConnectionGroup
 {
     [YamlMember(Alias = "in")]
-    public List<string> In { get; set; }
+    public List<string> In { get; set; } = new();
     [YamlMember(Alias = "out")]
-    public List<string> Out { get; set; }
+    public List<string> Out { get; set; } = new();
 }
 
 public class Entrances
 {
     [YamlMember(Alias = "fixed")]
-    public List<List<string>> Fixed { get; set; }
+    public List<List<string>> Fixed { get; set; } = new();
     [YamlMember(Alias = "connections")]
-    public List<ConnectionGroup> Connections { get; set; }
+    public List<ConnectionGroup> Connections { get; set; } = new();
 }
 
 public partial class Map
@@ -156,22 +154,49 @@ public partial class Map
 public partial class MapNodes
 {
     [YamlMember(Alias = "regions")]
-    public Region[] Regions { get; set; }
+    public List<Region> Regions { get; set; } = new();
 
     [YamlMember(Alias = "entrances")]
-    public Entrance[] Entrances { get; set; }
+    public List<Entrance> Entrances { get; set; } = new();
 
     [YamlMember(Alias = "holes")]
-    public Hole[] Holes { get; set; }
+    public List<Hole> Holes { get; set; } = new();
 
     [YamlMember(Alias = "items")]
-    public ItemEntry[] Items { get; set; }
+    public List<ItemEntry> Items { get; set; } = new();
 
     [YamlMember(Alias = "warps")]
-    public Warp[] Warps { get; set; }
+    public List<Warp> Warps { get; set; } = new();
 
     [YamlMember(Alias = "mobs")]
-    public Entity[] Mobs { get; set; }
+    public List<Entity> Mobs { get; set; } = new();
+
+    [YamlMember(Alias = "meta")]
+    public List<MetaEntry> Meta { get; set; } = new();
+
+    [YamlMember(Alias = "prizepacks")]
+    public List<Prizepack> Prizepacks { get; set; } = new();
+}
+
+public class MetaEntry
+{
+    [YamlMember(Alias = "name")]
+    public string Name { get; set; }
+
+    [YamlMember(Alias = "item")]
+    public string? Item { get; set; }
+}
+
+public class Prizepack
+{
+    [YamlMember(Alias = "name")]
+    public string Name { get; set; }
+
+    [YamlMember(Alias = "offset")]
+    public byte Offset { get; set; }
+
+    [YamlMember(Alias = "sprite")]
+    public string Sprite { get; set; }
 }
 
 public partial class Entrance
@@ -192,7 +217,7 @@ public partial class Hole
     public string Name { get; set; }
 
     [YamlMember(Alias = "entranceids")]
-    public long[] Entranceids { get; set; }
+    public List<long> Entranceids { get; set; } = new();
 }
 
 public partial class ItemEntry
@@ -201,7 +226,7 @@ public partial class ItemEntry
     public string Name { get; set; }
 
     [YamlMember(Alias = "addresses")]
-    public long[] Addresses { get; set; }
+    public List<long> Addresses { get; set; } = new();
 
     [YamlMember(Alias = "type")]
     public string Type { get; set; }
@@ -210,10 +235,10 @@ public partial class ItemEntry
     public string? Item { get; set; }
 
     [YamlMember(Alias = "itemset")]
-    public string[] Itemset { get; set; }
+    public List<string> Itemset { get; set; } = new();
 
     [YamlMember(Alias = "address")]
-    public long[] Address { get; set; }
+    public List<long> Address { get; set; } = new();
 }
 
 public partial class Warp
@@ -246,28 +271,28 @@ public partial class Room
 public partial class RoomNodes
 {
     [YamlMember(Alias = "regions")]
-    public Region[] Regions { get; set; }
+    public List<Region> Regions { get; set; } = new();
 
     [YamlMember(Alias = "keydoors")]
-    public Keydoor[] Keydoors { get; set; }
+    public List<Keydoor> Keydoors { get; set; } = new();
 
     [YamlMember(Alias = "bigkeydoors")]
-    public Keydoor[] BigKeydoors { get; set; }
+    public List<Keydoor> BigKeydoors { get; set; } = new();
 
     [YamlMember(Alias = "shutters")]
-    public Shutter[] Shutters { get; set; }
+    public List<Shutter> Shutters { get; set; } = new();
 
     [YamlMember(Alias = "items")]
-    public ItemEntry[] Items { get; set; }
+    public List<ItemEntry> Items { get; set; } = new();
 
     [YamlMember(Alias = "inventory")]
-    public InventoryEntry[] Inventory { get; set; }
+    public List<InventoryEntry> Inventory { get; set; } = new();
 
     [YamlMember(Alias = "pots")]
-    public Entity[] Pots { get; set; }
+    public List<Entity> Pots { get; set; } = new();
 
     [YamlMember(Alias = "mobs")]
-    public Entity[] Mobs { get; set; }
+    public List<Entity> Mobs { get; set; } = new();
 
 }
 
@@ -301,7 +326,7 @@ public partial class InventoryEntry
     public long Cost { get; set; }
 
     [YamlMember(Alias = "itemset")]
-    public string[] Itemset { get; set; }
+    public List<string> Itemset { get; set; } = new();
 }
 
 public partial class Entity
@@ -318,7 +343,7 @@ public partial class Entity
     public string Sprite { get; set; }
 
     [YamlMember(Alias = "state")]
-    public long[] State { get; set; }
+    public List<long> State { get; set; } = new();
 
     [YamlMember(Alias = "type")]
     public string? Type { get; set; }
@@ -327,13 +352,13 @@ public partial class Entity
     public string? Item { get; set; }
 
     [YamlMember(Alias = "itemset")]
-    public string[] ItemSet { get; set; }
+    public List<string> ItemSet { get; set; } = new();
 
     [YamlMember(Alias = "deny")]
-    public string[] Deny { get; set; }
+    public List<string> Deny { get; set; } = new();
 
     [YamlMember(Alias = "allow")]
-    public string[] Allow { get; set; }
+    public List<string> Allow { get; set; } = new();
 
     [YamlMember(Alias = "trophy")]
     public string? Trophy { get; set; }
