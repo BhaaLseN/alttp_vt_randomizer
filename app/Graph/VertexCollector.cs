@@ -40,12 +40,10 @@ class VertexCollector
      *
      * @throws Exception if unable to read data files
      */
+    // TODO: this really needs to return typed data already...
     public List<Dictionary<string, object>> loadYmlData(World world)
     {
-        var vertex_data = array_merge_recursive(
-            ymlReadDir(app_path("Graph/data/Vertices")),
-            world.config("vertex_data", new List<Vertex>())
-        );
+        var vertex_data = YamlReader.LoadVerticesFromDirectory();
 
         int world_id = world.id;
         bool inverted = world.config<string>("mode.state") == "inverted";
@@ -54,140 +52,135 @@ class VertexCollector
         var vertices = new List<Dictionary<string, object>>();
 
         // overworld
-        foreach (var map in vertex_data["maps"] ?? new List<Dictionary<string, object>>())
+        foreach (var map in vertex_data.Maps)
         {
             var shared = new Dictionary<string, object>()
             {
-                { "map", map["map"] },
+                { "map", map.MapMap },
             };
-            foreach (var meta in map["nodes"]["meta"] ?? new Dictionary<string, object>())
+            foreach (var meta in map.Nodes.Meta)
             {
                 vertices.Add(shared
                     .MergeOne("type", "meta")
-                    .Merge(meta));
+                    .Merge(meta.AsDictionary()));
             }
-            foreach (var prizepack in map["nodes"]["prizepacks"] ?? new Dictionary<string, object>())
+            foreach (var prizepack in map.Nodes.Prizepacks)
             {
-                vertices.Add(prizepack
+                vertices.Add(prizepack.AsDictionary()
                     .MergeOne("type", "prizepack"));
             }
-            foreach (var region in map["nodes"]["regions"] ?? new Dictionary<string, object>())
+            foreach (var region in map.Nodes.Regions)
             {
                 vertices.Add(shared
-                    .MergeOne("moonpearl", map["moonpearl"])
+                    .MergeOne("moonpearl", map.Moonpearl)
                     .MergeOne("type", "region")
-                    .Merge(region));
+                    .Merge(region.AsDictionary()));
             }
-            foreach (var warp in map["nodes"]["warps"] ?? new Dictionary<string, object>())
+            foreach (var warp in map.Nodes.Warps)
             {
                 vertices.Add(shared
-                    .MergeOne("moonpearl", map["moonpearl"])
+                    .MergeOne("moonpearl", map.Moonpearl)
                     .MergeOne("type", "warp")
-                    .Merge(warp));
+                    .Merge(warp.AsDictionary()));
             }
-            foreach (var mob in map["nodes"]["mobs"] ?? new Dictionary<string, object>())
+            foreach (var mob in map.Nodes.Mobs)
             {
-                mob["sprite"] = Sprite.get(mob["sprite"]);
                 vertices.Add(shared
                     .MergeOne("type", "mob")
-                    .Merge(mob));
+                    .MergeOne("sprite", Sprite.get(mob.Sprite))
+                    .Merge(mob.AsDictionary()));
             }
-            foreach (var item in map["nodes"]["items"] ?? new Dictionary<string, object>())
+            foreach (var item in map.Nodes.Items)
             {
                 vertices.Add(shared
                     .MergeOne("type", "item")
-                    .Merge(item));
+                    .Merge(item.AsDictionary()));
             }
-            foreach (var entrance in map["nodes"]["entrances"] ?? new Dictionary<string, object>())
+            foreach (var entrance in map.Nodes.Entrances)
             {
-                if (entrance.TryGetValue("entranceid", out var entranceid))
-                {
-                    vertices.Add(shared
-                        .MergeOne("name", entrance["name"] + " - In")
-                        .MergeOne("entranceid", entranceid)
-                        .MergeOne("type", "entrance"));
-                }
-                if (entrance.TryGetValue("outletid", out var outletid))
-                {
-                    vertices.Add(shared
-                        .MergeOne("name", entrance["name"] + " - Out")
-                        .MergeOne("outletid", outletid)
-                        .MergeOne("type", "outlet"));
-                }
+                // TODO: the old code had conditional access to entranceid and outletid; are there entrances without them?
+                vertices.Add(shared
+                    .MergeOne("name", entrance.Name + " - In")
+                    .MergeOne("entranceid", entrance.Entranceid)
+                    .MergeOne("type", "entrance"));
+                vertices.Add(shared
+                    .MergeOne("name", entrance.Name + " - Out")
+                    .MergeOne("outletid", entrance.Outletid)
+                    .MergeOne("type", "outlet"));
             }
             // consider merging Holes into entrances
-            foreach (var entrance in map["nodes"]["holes"] ?? new Dictionary<string, object>())
+            foreach (var entrance in map.Nodes.Holes)
             {
                 vertices.Add(shared
-                    .MergeOne("name", entrance["name"])
-                    .MergeOne("entranceids", entrance["entranceids"])
+                    .MergeOne("name", entrance.Name)
+                    .MergeOne("entranceids", entrance.Entranceids)
                     .MergeOne("type", "hole"));
             }
         }
 
         // underworld
-        foreach (var room in vertex_data["rooms"] ?? new List<Dictionary<string, object>>())
+        foreach (var room in vertex_data.Rooms)
         {
             var shared = new Dictionary<string, object>()
             {
-                { "roomid", room["roomid"] },
-                { "group", room.GetValueOrDefault("group") ?? 0 },
-                { "dark", room.GetValueOrDefault("dark") ?? false },
+                { "roomid", room.Roomid },
+                { "group", room.Group.GetValueOrDefault(0) },
+                { "dark", room.Dark },
             };
-            foreach (var region in room["nodes"]["regions"] ?? new Dictionary<string, object>())
+            foreach (var region in room.Nodes.Regions)
             {
                 vertices.Add(shared
                     .MergeOne("type", "region")
-                    .Merge(region));
-                if (region.TryGetValue("inletid", out var inletid))
+                    .Merge(region.AsDictionary()));
+                if (region.Inletid.HasValue)
                 {
                     vertices.Add(shared
-                    .MergeOne("name", region["name"] + " - Exit")
-                    .MergeOne("inletid", inletid));
+                        .MergeOne("name", region.Name + " - Exit")
+                        .MergeOne("inletid", region.Inletid.Value));
                 }
             }
-            foreach (var mob in room["nodes"]["mobs"] ?? new Dictionary<string, object>())
+            foreach (var mob in room.Nodes.Mobs)
             {
-                mob["sprite"] = Sprite.get(mob["sprite"]);
                 vertices.Add(shared
                     .MergeOne("type", "mob")
-                    .Merge(mob));
+                    .MergeOne("sprite", Sprite.get(mob.Sprite))
+                    .Merge(mob.AsDictionary()));
             }
-            foreach (var item in room["nodes"]["items"] ?? new Dictionary<string, object>())
+            foreach (var item in room.Nodes.Items)
             {
                 vertices.Add(shared
                     .MergeOne("type", "item")
-                    .Merge(item));
+                    .Merge(item.AsDictionary()));
             }
-            foreach (var keydoor in room["nodes"]["keydoors"] ?? new Dictionary<string, object>())
+            foreach (var keydoor in room.Nodes.Keydoors)
             {
                 vertices.Add(shared
                     .MergeOne("type", "keydoor")
-                    .Merge(keydoor));
+                    .Merge(keydoor.AsDictionary()));
             }
-            foreach (var bigkeydoor in room["nodes"]["bigkeydoors"] ?? new Dictionary<string, object>())
+            foreach (var bigkeydoor in room.Nodes.BigKeydoors)
             {
                 vertices.Add(shared
                     .MergeOne("type", "bigkeydoor")
-                    .Merge(bigkeydoor));
+                    .Merge(bigkeydoor.AsDictionary()));
             }
-            foreach (var shutter in room["nodes"]["shutters"] ?? new Dictionary<string, object>())
+            foreach (var shutter in room.Nodes.Shutters)
             {
                 vertices.Add(shared
                     .MergeOne("type", "shutter")
-                    .Merge(shutter));
+                    .Merge(shutter.AsDictionary()));
             }
-            foreach (var pot in room["nodes"]["pots"] ?? new Dictionary<string, object>())
+            foreach (var pot in room.Nodes.Pots)
             {
                 vertices.Add(shared
                     .MergeOne("type", "pot")
-                    .Merge(pot));
+                    .Merge(pot.AsDictionary()));
             }
             // TODO: how do we want to handle this?
-            foreach (var item in room["nodes"]["inventory"] ?? new Dictionary<string, object>())
+            foreach (var item in room.Nodes.Inventory)
             {
                 vertices.Add(shared
-                    .Merge(item));
+                    .Merge(item.AsDictionary()));
             }
 
             //if (room["bosses"] ?? false)

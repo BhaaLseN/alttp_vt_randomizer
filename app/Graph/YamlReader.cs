@@ -59,8 +59,10 @@ public class YamlReader
         return result;
     }
 
-    public static void MergeEdges(Dictionary<string, DirectedUndirectedPair> dest, Dictionary<string, DirectedUndirectedPair> source) {
-
+    public static void MergeEdges(Dictionary<string, DirectedUndirectedPair> dest, Dictionary<string, DirectedUndirectedPair> source)
+    {
+        if (source is null)
+            return;
         foreach (var entry in source)
         {
             DirectedUndirectedPair result_pair;
@@ -142,7 +144,7 @@ public class Entrances
 public partial class Map
 {
     [YamlMember(Alias = "map")]
-    public long MapMap { get; set; }
+    public int MapMap { get; set; }
 
     [YamlMember(Alias = "moonpearl")]
     public bool Moonpearl { get; set; }
@@ -185,6 +187,18 @@ public class MetaEntry
 
     [YamlMember(Alias = "item")]
     public string? Item { get; set; }
+
+    public Dictionary<string, object> AsDictionary()
+    {
+        var result = new Dictionary<string, object>
+        {
+            { "name", Name },
+        };
+        if (!string.IsNullOrWhiteSpace(Item))
+            result.Add("item", Item);
+
+        return result;
+    }
 }
 
 public class Prizepack
@@ -197,6 +211,13 @@ public class Prizepack
 
     [YamlMember(Alias = "sprite")]
     public string Sprite { get; set; }
+
+    public Dictionary<string, object> AsDictionary() => new()
+    {
+        { "name", Name },
+        { "offset", Offset },
+        { "sprite", Sprite },
+    };
 }
 
 public partial class Entrance
@@ -205,10 +226,10 @@ public partial class Entrance
     public string Name { get; set; }
 
     [YamlMember(Alias = "entranceid")]
-    public long Entranceid { get; set; }
+    public int Entranceid { get; set; }
 
     [YamlMember(Alias = "outletid")]
-    public long Outletid { get; set; }
+    public int Outletid { get; set; }
 }
 
 public partial class Hole
@@ -217,7 +238,7 @@ public partial class Hole
     public string Name { get; set; }
 
     [YamlMember(Alias = "entranceids")]
-    public List<long> Entranceids { get; set; } = new();
+    public List<int> Entranceids { get; set; } = new();
 }
 
 public partial class ItemEntry
@@ -236,6 +257,23 @@ public partial class ItemEntry
 
     [YamlMember(Alias = "itemset")]
     public List<string> Itemset { get; set; } = new();
+
+    public Dictionary<string, object> AsDictionary()
+    {
+        var result = new Dictionary<string, object>
+        {
+            { "name", Name },
+            { "type", Type },
+        };
+        if (!string.IsNullOrWhiteSpace(Item))
+            result.Add("item", Item);
+        if (Addresses.Any())
+            result.Add("addresses", Addresses);
+        if (Itemset.Any())
+            result.Add("itemset", Itemset);
+
+        return result;
+    }
 }
 
 public partial class Warp
@@ -245,12 +283,18 @@ public partial class Warp
 
     [YamlMember(Alias = "position")]
     public Position Position { get; set; }
+
+    public Dictionary<string, object> AsDictionary() => new Dictionary<string, object>
+    {
+        { "name", Name },
+        { "position", Position },
+    };
 }
 
 public partial class Room
 {
     [YamlMember(Alias = "roomid")]
-    public long Roomid { get; set; }
+    public int Roomid { get; set; }
 
     [YamlMember(Alias = "nodes")]
     public RoomNodes Nodes { get; set; }
@@ -300,12 +344,23 @@ public partial class Keydoor
 
     [YamlMember(Alias = "key")]
     public string Key { get; set; }
+
+    public Dictionary<string, object> AsDictionary() => new()
+    {
+        { "name", Name },
+        { "key", Key },
+    };
 }
 
 public partial class Shutter
 {
     [YamlMember(Alias = "name")]
     public string Name { get; set; }
+
+    public Dictionary<string, object> AsDictionary() => new()
+    {
+        { "name", Name },
+    };
 }
 
 public partial class InventoryEntry
@@ -320,10 +375,25 @@ public partial class InventoryEntry
     public string Item { get; set; }
 
     [YamlMember(Alias = "cost")]
-    public long Cost { get; set; }
+    public int Cost { get; set; }
 
     [YamlMember(Alias = "itemset")]
     public List<string> Itemset { get; set; } = new();
+
+    public Dictionary<string, object> AsDictionary()
+    {
+        var result = new Dictionary<string, object>
+        {
+            { "name", Name },
+            { "type", Type },
+            { "item", Item },
+            { "cost", Cost },
+        };
+        if (Itemset.Any())
+            result.Add("itemset", Itemset);
+
+        return result;
+    }
 }
 
 public partial class Entity
@@ -340,7 +410,7 @@ public partial class Entity
     public string Sprite { get; set; }
 
     [YamlMember(Alias = "state")]
-    public List<long> State { get; set; } = new();
+    public List<int> State { get; set; } = new();
 
     [YamlMember(Alias = "type")]
     public string? Type { get; set; }
@@ -359,18 +429,44 @@ public partial class Entity
 
     [YamlMember(Alias = "trophy")]
     public string? Trophy { get; set; }
+
+    public Dictionary<string, object> AsDictionary()
+    {
+        var result = new Dictionary<string, object>
+        {
+            { "name", Name },
+            { "position", Position },
+            //{ "sprite", Sprite }, // this one is turned into an actual sprite later.
+        };
+        if (!string.IsNullOrWhiteSpace(Type))
+            result.Add("type", Type);
+        if (!string.IsNullOrWhiteSpace(Item))
+            result.Add("item", Item);
+        if (State.Any())
+            result.Add("state", State);
+        if (ItemSet.Any())
+            result.Add("itemset", ItemSet);
+        if (Deny.Any())
+            result.Add("deny", Deny);
+        if (Allow.Any())
+            result.Add("allow", Allow);
+        if (!string.IsNullOrWhiteSpace(Trophy))
+            result.Add("trophy", Trophy);
+
+        return result;
+    }
 }
 
 public partial class Position
 {
     [YamlMember(Alias = "x")]
-    public long X { get; set; }
+    public int X { get; set; }
 
     [YamlMember(Alias = "y")]
-    public long Y { get; set; }
+    public int Y { get; set; }
 
     [YamlMember(Alias = "z")]
-    public long? Z { get; set; }
+    public int? Z { get; set; }
 }
 
 public partial class Region
@@ -379,7 +475,7 @@ public partial class Region
     public string Name { get; set; }
 
     [YamlMember(Alias = "inletid")]
-    public long? Inletid { get; set; }
+    public int? Inletid { get; set; }
 
     [YamlMember(Alias = "type")]
     public string? Type { get; set; }
@@ -388,13 +484,35 @@ public partial class Region
     public string? Peg { get; set; }
 
     [YamlMember(Alias = "shopkeeper")]
-    public long? Shopkeeper { get; set; }
+    public int? Shopkeeper { get; set; }
 
     [YamlMember(Alias = "shopstyle")]
-    public long? Shopstyle { get; set; }
+    public int? Shopstyle { get; set; }
 
     [YamlMember(Alias = "switch")]
     public bool? Switch { get; set; }
+
+    public Dictionary<string, object> AsDictionary()
+    {
+        var result = new Dictionary<string, object>
+        {
+            { "name", Name },
+        };
+        if (Inletid.HasValue)
+            result.Add("inletid", Inletid.Value);
+        if (!string.IsNullOrWhiteSpace(Type))
+            result.Add("type", Type);
+        if (!string.IsNullOrWhiteSpace(Peg))
+            result.Add("peg", Peg);
+        if (Shopkeeper.HasValue)
+            result.Add("shopkeeper", Shopkeeper.Value);
+        if (Shopstyle.HasValue)
+            result.Add("shopstyle", Shopstyle.Value);
+        if (Switch.HasValue)
+            result.Add("switch", Switch.Value);
+
+        return result;
+    }
 }
 
 public class Vertices
