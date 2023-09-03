@@ -46,8 +46,8 @@ sealed class EntranceShuffler
     {
         world_id = this.world.id;
         foreach (var connection in this.definition["fixed"]) {
-            from = this.world.graph.getVertex(connection[0] . ":world_id");
-            to = this.world.graph.getVertex(connection[1] . ":world_id");
+            from = this.world.graph.getVertex($"{connection[0]}:{world_id}");
+            to = this.world.graph.getVertex($"{connection[1]}:{world_id}");
             if (
                 !from instanceof Vertex
                 || !to instanceof Vertex
@@ -59,7 +59,7 @@ sealed class EntranceShuffler
                     to,
                 ]);
             }
-            this.world.graph.addDirected(from, to, "fixed:world_id");
+            this.world.graph.addDirected(from, to, $"fixed:{world_id}");
         }
 
         foreach (var group in this.definition["connections"]) {
@@ -77,9 +77,9 @@ sealed class EntranceShuffler
                 }
                 foreach (var offset => in in in_items) {
                     out = out_items[offset];
-                    from = this.world.graph.getVertex(in . ":world_id");
-                    to = this.world.graph.getVertex(out . ":world_id");
-                    this.world.graph.addDirected(from, to, "fixed:world_id");
+                    from = this.world.graph.getVertex(${in}:{world_id}");
+                    to = this.world.graph.getVertex($"{out}:{world_id}");
+                    this.world.graph.addDirected(from, to, $"fixed:{world_id}");
                 }
             }
         }

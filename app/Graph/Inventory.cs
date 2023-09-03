@@ -27,6 +27,11 @@ sealed class Inventory
             this.addItemByName(item is Item i ? i.name : (string)item);
         }
     }
+    private Inventory(Inventory other)
+    {
+        item_count = new(other.item_count);
+        health = new(other.health);
+    }
 
     /**
      * Add item to inventory.
@@ -35,7 +40,7 @@ sealed class Inventory
      */
     public Inventory addItem(object item)
     {
-        var newInventory = (Inventory)this.MemberwiseClone();
+        var newInventory = new Inventory(this);
         newInventory.addItemByName(item is Item i ? i.name : (string)item);
 
         return newInventory;
@@ -69,7 +74,7 @@ sealed class Inventory
             string[] parts = item_name.Split(':');
             if (!int.TryParse(parts.Skip(1).FirstOrDefault(), out int world_id))
                 world_id = 0;
-            this.addItemByName("LogicalBottle:world_id");
+            this.addItemByName($"LogicalBottle:{world_id}");
         }
 
         if (newCount > 1)
@@ -122,7 +127,7 @@ sealed class Inventory
             string[] itemParts = key.Split(':');
             if (!int.TryParse(itemParts.Skip(1).FirstOrDefault(), out int world_id))
                 world_id = 0;
-            key = "LogicalBottle:world_id";
+            key = $"LogicalBottle:{world_id}";
         }
 
         return this.item_count.GetValueOrDefault(key, 0);
@@ -145,7 +150,7 @@ sealed class Inventory
      */
     public Inventory merge(Inventory inventory)
     {
-        var newInventory = (Inventory)this.MemberwiseClone();
+        var newInventory = new Inventory(this);
 
         foreach (var (key, count) in inventory.item_count)
         {
@@ -154,11 +159,11 @@ sealed class Inventory
                 continue;
             }
 
-            int newCount = this.item_count.AddOrUpdate(key, count, (_, v) => v + count);
+            int newCount = newInventory.item_count.AddOrUpdate(key, count, (_, v) => v + count);
 
-            for (int i = newCount; i < newInventory.item_count[key]; ++i)
+            for (int i = 2; i <= newCount; ++i)
             {
-                newInventory.item_count[key + "|" + (i + 1)] = 1;
+                newInventory.item_count[key + "|" + i] = 1;
             }
         }
 

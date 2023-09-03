@@ -596,7 +596,7 @@ sealed class EnemyShuffler
             var to = this.world.graph.getVertex($"{token}:{world_id}");
             foreach (var item in items)
             {
-                this.world.graph.addDirected(from, to, "item:world_id");
+                this.world.graph.addDirected(from, to, $"{item}:{world_id}");
             }
         }
 

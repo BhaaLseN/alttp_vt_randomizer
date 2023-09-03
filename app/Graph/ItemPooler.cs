@@ -131,6 +131,7 @@ sealed class ItemPooler
                     var junkFill = world_set["*"][9999].Shuffle().Take(fill_count).ToArray();
                     foreach (var key in junkFill)
                     {
+                        world_set["gt:" + world.id].TryAdd(2, new());
                         world_set["gt:" + world.id][2].Add(key);
                         world_set["*"][9999].Remove(key);
                     }

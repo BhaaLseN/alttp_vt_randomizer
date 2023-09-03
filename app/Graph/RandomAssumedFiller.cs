@@ -40,7 +40,7 @@ sealed class RandomAssumedFiller
             .OrderBy(i => i.Weight)
             .ToList();
 
-        foreach (var item_key in flat_items)
+        foreach (var item_key in flat_items.ToArray())
         {
             var (item_set, item_weight, item) = item_key;
             if (item_weight > 9000)
@@ -51,20 +51,9 @@ sealed class RandomAssumedFiller
             flat_items.Remove(item_key);
             var item_world_id = item.world_id;
             this.randomizer.assumeItems(flat_items.Where(i => i.Weight <= 9000).Select(i => i.Item).ToList());
-            bool required = false;
-            IEnumerable<Vertex> locations;
-            if (
-                (string)this.config["accessibility"][item_world_id] == "none"
-                && this.randomizer.collectItems().has($"Triforce:{item_world_id}")
-            )
-            {
-                locations = this.randomizer.getEmptyLocationsInSet(item_set, set_counts, false);
-            }
-            else
-            {
-                required = true;
-                locations = this.randomizer.getEmptyLocationsInSet(item_set, set_counts);
-            }
+            bool required = (string)this.config["accessibility"][item_world_id] != "none"
+                || !this.randomizer.collectItems().has($"Triforce:{item_world_id}");
+            var locations = this.randomizer.getEmptyLocationsInSet(item_set, set_counts, required);
 
             if (!locations.Any())
             {
@@ -72,7 +61,7 @@ sealed class RandomAssumedFiller
             }
 
             var location = locations.Shuffle().First();
-            Console.WriteLine("[%s] [%s] Placing `%s` in `%s` (%s:%d)", 
+            System.Console.WriteLine("[{0}] [{1}] Placing `{2}` in `{3}` ({4}:{5})",
                 item_weight,
                 required ? "R" : " ",
                 item,
@@ -98,7 +87,7 @@ sealed class RandomAssumedFiller
      */
     private void fastFillItemsInLocations(List<(string Set, int Weight, Item Item)> fill_items)
     {
-        //Log.debug(sprintf("Fast Filling %s items", count(fill_items)));
+        System.Console.WriteLine("Fast Filling {0} items", fill_items.Count);
         // assure smaller location groups are filled first
         fill_items.Sort((a, b) =>
         {
@@ -119,17 +108,17 @@ sealed class RandomAssumedFiller
             var location = locations.LastOrDefault();
             if (location is null)
             {
-                //Log.debug(sprintf("No Location: `%s` `%s`", item, item_set));
+                System.Console.WriteLine("No Location: `{0}` `{1}`", item, item_set);
                 continue;
             }
             location.item = item;
             locations.Remove(location);
-            //Log.debug(vsprintf("[FF] Placing: `%s` in `%s` (%s:%d)", [
-            //    item,
-            //    location.name,
-            //    item_set,
-            //    count(locations) + 1,
-            //]));
+            System.Console.WriteLine("[FF] Placing: `{0}` in `{1}` ({2}:{3})",
+                item,
+                location.name,
+                item_set,
+                locations.Count + 1
+            );
         }
     }
 }

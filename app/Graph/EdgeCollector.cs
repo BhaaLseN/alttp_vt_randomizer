@@ -15,7 +15,8 @@ class EdgeCollector
     {
         var edges_data = YamlReader.LoadEdgesFromDirectory("Edges/base");
 
-        switch (world.config<string>("mode.state")) {
+        switch (world.config<string>("mode.state"))
+        {
             case "standard":
                 YamlReader.MergeEdges(edges_data, YamlReader.LoadEdgesFromDirectory("Edges/normal"));
                 YamlReader.MergeEdges(edges_data, YamlReader.LoadEdgesFromDirectory("Edges/standard"));
@@ -27,7 +28,7 @@ class EdgeCollector
             case "inverted":
                 YamlReader.MergeEdges(edges_data, YamlReader.LoadEdgesFromDirectory("Edges/inverted"));
                 // @todo move these once we have the nodes made
-                edges_data["fixed"].directed.Add(new() { "start", "Link's House - Bedroom"});
+                edges_data["fixed"].directed.Add(new() { "start", "Link's House - Bedroom" });
                 edges_data["fixed"].directed.Add(new() { "start", "Dark Sanctuary" });
                 // edges_data["OldManFound"]["directed"][] = ["start", "Old Man Cave"];
 
@@ -42,30 +43,29 @@ class EdgeCollector
                 break;
         }
 
-        foreach (var tech in world.config("tech", Enumerable.Empty<string>())) {
+        foreach (var tech in world.config("tech", Enumerable.Empty<string>()))
+        {
             YamlReader.MergeEdges(edges_data, YamlReader.LoadEdgesFromFile("Edges/tech/" + tech + ".yml"));
         }
 
-        // TODO: localize to world
-        /*
-        return_data = [];
+        var return_data = new Dictionary<string, DirectedUndirectedPair>();
         var world_id = world.id;
-        foreach (var edge in edges_data) {
-            var name = edge.Key + ":" + world_id;
+        foreach (var (group, edges) in edges_data)
+        {
+            var name = group + ":" + world_id;
 
-            if (edge.Key.Contains("|"))
+            if (group.Contains('|'))
             {
-                name.Replace("|", ":" + world_id + "|");
+                name = group.Replace("|", ":" + world_id + "|");
             }
 
-            // ???
-            return_data[name] = array_map(fn (es) => array_map(fn (v) => [
-                "{v[0]}:world_id",
-                "{v[1]}:world_id",
-            ], es), edges);
+            return_data[name] = new DirectedUndirectedPair
+            {
+                directed = edges.directed.Select((es) => es.Select((v) => $"{v}:{world_id}").ToList()).ToList(),
+                undirected = edges.undirected.Select((es) => es.Select((v) => $"{v}:{world_id}").ToList()).ToList(),
+            };
         }
-        */
 
-        return edges_data;
+        return return_data;
     }
 }

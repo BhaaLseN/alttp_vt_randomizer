@@ -263,7 +263,8 @@ sealed class Graph
         {
             while (peg_queue.TryDequeue(out var vertex))
             {
-                if (vertex.@switch) {
+                if (vertex.@switch)
+                {
                     if (!this.marked.TryGetValue(start, out var markedFromStart) || !markedFromStart.Contains(vertex))
                     {
                         queue.Enqueue(vertex);
@@ -273,7 +274,7 @@ sealed class Graph
                 {
                     continue;
                 }
-                foreach (var next_vertex in this.adjency_matrix[vertex])
+                foreach (var next_vertex in this.adjency_matrix.GetValueOrDefault(vertex, new()))
                 {
                     if (!this.peg_marked.TryGetValue(start, out var pegMarkedFromStart) || !pegMarkedFromStart.Contains(next_vertex))
                     {
@@ -286,7 +287,8 @@ sealed class Graph
 
             while (queue.TryDequeue(out var vertex))
             {
-                if (vertex.@switch) {
+                if (vertex.@switch)
+                {
                     if (!this.peg_marked.TryGetValue(start, out var pegMarkedFromStart) || !pegMarkedFromStart.Contains(vertex))
                     {
                         peg_queue.Enqueue(vertex);
@@ -296,7 +298,7 @@ sealed class Graph
                 {
                     continue;
                 }
-                foreach (var next_vertex in this.adjency_matrix[vertex])
+                foreach (var next_vertex in this.adjency_matrix.GetValueOrDefault(vertex, new()))
                 {
                     if (!this.marked.TryGetValue(start, out var markedFromStart) || !markedFromStart.Contains(next_vertex))
                     {

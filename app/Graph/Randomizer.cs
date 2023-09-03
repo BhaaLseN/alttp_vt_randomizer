@@ -26,12 +26,14 @@ sealed class Randomizer
         "prize",
         "pedestal",
         "refill",
+        // FIXME: this is likely wrong, PHP doesn't have it. but without this, we don't get medallions in set_locations
+        "medallion",
     };
 
     public Graph graph;
     private Graph starting_graph;
     private readonly Dictionary<string, Graph> graphs;
-    private readonly ConcurrentDictionary<string, List<Vertex>> key_doors = new();
+    private readonly ConcurrentDictionary<string, HashSet<Vertex>> key_doors = new();
     /**
      * Key edges for just this door.
      */
@@ -146,7 +148,9 @@ sealed class Randomizer
                 foreach (var key_door in keyDoorsForGroup)
                 {
                     var graphForKeyDoor = new Graph();
-                    this.key_door_edges.Add(key_door, graphForKeyDoor);
+                    // TODO: should this realy overwrite the graph?
+                    //this.key_door_edges.Add(key_door, graphForKeyDoor);
+                    this.key_door_edges[key_door] = graphForKeyDoor;
                     foreach (var edge in key_edges)
                     {
                         if (edge.From == key_door)
@@ -205,7 +209,7 @@ sealed class Randomizer
         collected_item_map ??= new();
 
         var search_graph = starting_graph ?? this.starting_graph;
-        var graphs = this.graphs;
+        var graphs = new Dictionary<string, Graph>(this.graphs);
         bool newItemsFound;
         do
         {
@@ -306,7 +310,9 @@ sealed class Randomizer
             if (locked_doors.Count() > 1 && new_found_keys > recursion_level)
             {
                 var all_found = found_locations.Concat(found);
-                sub_found_locations.Add(door, this.recursiveDoorSearch(
+                // TODO: should this be overwriting the door search result?
+                //sub_found_locations.Add(door, this.recursiveDoorSearch(
+                sub_found_locations[door] = this.recursiveDoorSearch(
                     graph,
                     all_found,
                     new_collected,
@@ -314,7 +320,7 @@ sealed class Randomizer
                     key,
                     recursion_level + 1,
                     current_chain
-                ).ToList());
+                ).ToList();
             }
             this.door_chains.Add(chain_id, sub_found_locations[door]);
         }
@@ -344,6 +350,7 @@ sealed class Randomizer
         do
         {
             this.door_chains.Clear();
+            new_found_locations.Clear();
             var new_items = this.collectItems(found_locations);
             var new_collected = collected.merge(new_items);
             search_graph = this.searchGraph(new_collected, null, getItems(found_locations));
@@ -376,7 +383,7 @@ sealed class Randomizer
      */
     public void assumeItems(IEnumerable<Item> items)
     {
-        this.assumed_items = new Inventory(items);
+        this.assumed_items = new Inventory(items.ToArray());
         this.found_locations = this.getStrongLocations(this.collected_items.merge(this.assumed_items));
     }
 

@@ -7,7 +7,7 @@ internal static class PHP
     {
         var result = new Dictionary<TKey, TValue>(array);
         foreach (var (key, value) in arrays.SelectMany(d => d))
-            result.TryAdd(key, value);
+            result[key] = value;
 
         return result;
     }

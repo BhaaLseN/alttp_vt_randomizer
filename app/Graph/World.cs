@@ -9,7 +9,7 @@ sealed class World
 {
     public readonly int id;
     public readonly Graph graph;
-    private List<Vertex> vertices;
+    private readonly List<Vertex> vertices = new();
     public readonly Inventory collected_items;
     private readonly ConcurrentDictionary<string, object> _config;
     public Dictionary<string, int[]> sprite_sheets = new()
@@ -78,7 +78,7 @@ sealed class World
         {
             items.Add($"KeyForKey:{this.id}");
         }
-        this.collected_items = new Inventory(items);
+        this.collected_items = new Inventory(items.ToArray());
 
         var vertices = new VertexCollector().loadYmlData(this);
         vertices.ForEach(data =>
@@ -132,7 +132,7 @@ sealed class World
                 ? "Crystal:" + this.id
                 : "Crystal:" + this.id + "|" + this.config("crystals.tower", 7);
 
-            this.graph.addDirected(this.graph.getVertex($"Meta:{this.id}"), towerEntry, entry);
+            this.graph.addDirected(meta, towerEntry, entry);
         }
         if (this.graph.getVertex($"GanonVulnerable:{this.id}") is Vertex ganonVulnerable)
         {
@@ -149,7 +149,7 @@ sealed class World
                         ? "Crystal:" + this.id
                         : "Crystal:" + this.id + "|" + this.config("crystals.ganon", 7);
 
-                    this.graph.addDirected(this.graph.getVertex($"Meta:{this.id}"), ganonVulnerable, vulnerable);
+                    this.graph.addDirected(meta, ganonVulnerable, vulnerable);
                     break;
             }
         }

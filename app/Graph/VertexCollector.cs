@@ -193,7 +193,7 @@ class VertexCollector
 
         return vertices.Select((v) =>
         {
-            if (v.TryGetValue("itemset", out var itemSetO) && itemSetO is string[] itemSet)
+            if (v.TryGetValue("itemset", out var itemSetO) && itemSetO is List<string> itemSet)
             {
                 v["itemset"] = itemSet.Select((set) => $"{set}:{world_id}").ToArray();
             }
