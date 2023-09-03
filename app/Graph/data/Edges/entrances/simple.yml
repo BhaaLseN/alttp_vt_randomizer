@@ -15,15 +15,13 @@
 # Overworld Holes (excluding those in Skull Woods)
 # All holes are grouped and randomized with each other. Holes and their associated cave entrance remain paired together. For example falling in a hole and exiting will take you to the overworld cave associated with that hole, regardless of which interior rooms the hole led to.
 fixed: []
-connectons:
+connections:
   - # Single-Entrance Dungeons
     # All entrances are grouped and randomized with each other. This includes the
     # final section of Skull Woods (leading to the boss) but does not include any
     # other Skull Woods entrances.
-    in:
-      - ["Tower Of Hera - Entrance - In", "Tower Of Hera - Entrance - Exit"]
-    out:
-      - ["Tower Of Hera - Entrance", "Tower Of Hera - Entrance - Out"]
+    in: ["Tower Of Hera - Entrance - In", "Tower Of Hera - Entrance - Exit"]
+    out: ["Tower Of Hera - Entrance", "Tower Of Hera - Entrance - Out"]
   - # Multi-Entrance Dungeons (excluding Skull Woods)
     # Each of the 4 entrances of Hyrule Castle, Desert Palace and Turtle Rock
     # remain grouped together. Each group of 4 are randomized with each other
