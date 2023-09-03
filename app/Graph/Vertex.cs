@@ -1,6 +1,5 @@
 namespace App.Graph;
 
-public record class Position(short X, short Y, short Z);
 // FIXME: we need a sprite class that does something.
 public record class Sprite(string Name)
 {

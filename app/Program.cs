@@ -9,3 +9,5 @@ var edges = YamlReader.LoadEdgesFromDirectory("Edges\\base");
 var entrances_nutty = YamlReader.LoadEntrances("nutty");
 var entrances_simple = YamlReader.LoadEntrances("simple");
 var entrances_vanilla = YamlReader.LoadEntrances("vanilla");
+var vertices = YamlReader.LoadVerticesFromDirectory("Vertices");
+
