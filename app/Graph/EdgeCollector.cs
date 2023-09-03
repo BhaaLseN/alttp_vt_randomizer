@@ -11,68 +11,61 @@ class EdgeCollector
      *
      * @param World world world to attach preset items to
      */
-    public Dictionary<string, Dictionary<string, string[][]>> getForWorld(World world)
+    public Dictionary<string, DirectedUndirectedPair> getForWorld(World world)
     {
-        edges_data = ymlReadDir(app_path("Graph/data/Edges/base"));
+        var edges_data = YamlReader.LoadEdgesFromDirectory("Edges/base");
 
-        switch (world.config("mode.state")) {
+        switch (world.config<string>("mode.state")) {
             case "standard":
-                edges_data = array_merge_recursive(
-                    edges_data,
-                    ymlReadDir(app_path("Graph/data/Edges/normal")),
-                    ymlReadDir(app_path("Graph/data/Edges/standard"))
-                );
-                edges_data["fixed"]["directed"][] = ["start", "Rain - Link"s House"];
-                edges_data["RescueZelda"]["directed"][] = ["start", "Sanctuary Hall"];
+                YamlReader.MergeEdges(edges_data, YamlReader.LoadEdgesFromDirectory("Edges/normal"));
+                YamlReader.MergeEdges(edges_data, YamlReader.LoadEdgesFromDirectory("Edges/standard"));
+                edges_data["fixed"].directed.Add(new() { "start", "Rain - Link's House" });
+                edges_data["RescueZelda"].directed.Add(new() { "start", "Sanctuary Hall" });
                 // edges_data["OldManFound"]["directed"][] = ["start", "Old Man Cave"];
 
                 break;
             case "inverted":
-                edges_data = array_merge_recursive(
-                    edges_data,
-                    ymlReadDir(app_path("Graph/data/Edges/inverted"))
-                );
+                YamlReader.MergeEdges(edges_data, YamlReader.LoadEdgesFromDirectory("Edges/inverted"));
                 // @todo move these once we have the nodes made
-                edges_data["fixed"]["directed"][] = ["start", "Link"s House - Bedroom"];
-                edges_data["fixed"]["directed"][] = ["start", "Dark Sanctuary"];
+                edges_data["fixed"].directed.Add(new() { "start", "Link's House - Bedroom"});
+                edges_data["fixed"].directed.Add(new() { "start", "Dark Sanctuary" });
                 // edges_data["OldManFound"]["directed"][] = ["start", "Old Man Cave"];
 
                 break;
             case "open":
             default:
-                edges_data = array_merge_recursive(
-                    edges_data,
-                    ymlReadDir(app_path("Graph/data/Edges/normal")),
-                    ymlReadDir(app_path("Graph/data/Edges/open"))
-                );
-                edges_data["fixed"]["directed"][] = ["start", "Link"s House - Bedroom"];
-                edges_data["fixed"]["directed"][] = ["start", "Sanctuary Hall"];
+                YamlReader.MergeEdges(edges_data, YamlReader.LoadEdgesFromDirectory("Edges/normal"));
+                YamlReader.MergeEdges(edges_data, YamlReader.LoadEdgesFromDirectory("Edges/open"));
+                edges_data["fixed"].directed.Add(new() { "start", "Link's House - Bedroom" });
+                edges_data["fixed"].directed.Add(new() { "start", "Sanctuary Hall" });
                 // edges_data["OldManFound"]["directed"][] = ["start", "Old Man Cave"];
+                break;
         }
 
-        foreach (var tech in world.config("tech", [])) {
-            edges_data = array_merge_recursive(
-                edges_data,
-                ymlReadFile(app_path("Graph/data/Edges/tech/tech.yml"))
-            );
+        foreach (var tech in world.config("tech", Enumerable.Empty<string>())) {
+            YamlReader.MergeEdges(edges_data, YamlReader.LoadEdgesFromFile("Edges/tech/" + tech + ".yml"));
         }
 
-        // localize to world
+        // TODO: localize to world
+        /*
         return_data = [];
-        world_id = world.id;
-        foreach (var group => edges in edges_data) {
-            name = "group:world_id";
-            if (strpos(group, "|") != false) {
-                [name, count] = explode("|", group);
-                name = "name:world_id|count";
+        var world_id = world.id;
+        foreach (var edge in edges_data) {
+            var name = edge.Key + ":" + world_id;
+
+            if (edge.Key.Contains("|"))
+            {
+                name.Replace("|", ":" + world_id + "|");
             }
 
+            // ???
             return_data[name] = array_map(fn (es) => array_map(fn (v) => [
                 "{v[0]}:world_id",
                 "{v[1]}:world_id",
             ], es), edges);
         }
+        */
 
-        return return_data;
+        return edges_data;
     }
 }

@@ -3,4 +3,4 @@ namespace App.Graph;
 /**
  * Edge in Graph.
  */
-sealed record class Edge(Vertex From, Vertex To, string Group);
+sealed record struct Edge(Vertex From, Vertex To, string Group);

@@ -6,6 +6,7 @@ namespace App.Graph;
 sealed class EntranceShuffler
 {
     private readonly array definition;
+    private readonly World world;
 
     /**
      * Add all the vertices to the graph for this region.
@@ -14,20 +15,21 @@ sealed class EntranceShuffler
      *
      * @return void
      */
-    public function __construct(private World world)
+    public EntranceShuffler(World world)
     {
-        definition = match (world.config("entrances")) {
+        this.world = world;
+        definition = world.config<string>("entrances") switch {
             "simple" => "simple.yml",
             "restricted" => "vanilla.yml",
             "full" => "vanilla.yml",
             "crossed" => "vanilla.yml",
             "insanity" => "vanilla.yml",
             "none" => "vanilla.yml",
-            default => world.config("entrances") ?? "vanilla.yml",
+            _ => world.config<string>("entrances") ?? "vanilla.yml",
         };
 
-        if (is_string(definition) && is_readable(app_path("Graph/data/Edges/entrances/definition"))) {
-            definition = Yaml.parse(file_get_contents(app_path("Graph/data/Edges/entrances/definition")));
+        if (is_string(definition) && is_readable(app_path("Graph/data/Edges/entrances/" + definition))) {
+            definition = Yaml.parse(file_get_contents(app_path("Graph/data/Edges/entrances/" + definition)));
         }
 
         if (!is_array(definition)) {

@@ -53,7 +53,7 @@ sealed class Item
 
         items.Add(world_id, itemsForWorld = new());
 
-        raw_items ??= ymlReadFile(app_path('Graph/data/items.yml'));
+        raw_items ??= YamlReader.LoadItems();
 
         foreach (var(item_name, item_data) in raw_items) {
             itemsForWorld.Add($"{item_name}:{world_id}", new Item(item_name, item_data/*["bytes"]*/, world_id));

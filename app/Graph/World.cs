@@ -97,7 +97,7 @@ sealed class World
         var edges = new EdgeCollector().getForWorld(this);
         foreach (var (group, data) in edges)
         {
-            foreach (var edge_data in data["directed"])
+            foreach (var edge_data in data.directed)
             {
                 var from = this.graph.getVertex(edge_data[0]);
                 var to = this.graph.getVertex(edge_data[1]);
@@ -110,7 +110,7 @@ sealed class World
                 }
                 this.graph.addDirected(from, to, group);
             }
-            foreach (var edge_data in data["undirected"])
+            foreach (var edge_data in data.undirected)
             {
                 var from = this.graph.getVertex(edge_data[0]);
                 var to = this.graph.getVertex(edge_data[1]);

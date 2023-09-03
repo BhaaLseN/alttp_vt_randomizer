@@ -1,3 +1,5 @@
+using System.Text.RegularExpressions;
+
 namespace App.Graph;
 
 /**
@@ -5,36 +7,38 @@ namespace App.Graph;
  */
 sealed class BunnyGraphifier
 {
-    private const ITEM_MAP = [
-        "L1Sword" => "DarkL1Sword",
-        "FireRod" => "DarkFireRod",
-        "IceRod" => "DarkIceRod",
-        "Hammer" => "DarkHammer",
-        "Hookshot" => "DarkHookshot",
-        "BowAndArrows" => "DarkBowAndArrows",
-        "Boomerang" => "DarkBoomerang",
-        "PegasusBoots" => "DarkPegasusBoots",
-        "Powder" => "DarkPowder",
-        "ActiveBombos" => "DarkActiveBombos",
-        "ActiveEther" => "DarkActiveEther",
-        "ActiveQuake" => "DarkActiveQuake",
-        "Lamp" => "DarkLamp", // Lamp for seeing, Lamp for lighting, ??
-        "Shovel" => "DarkShovel",
-        "OcarinaInactive" => "DarkOcarinaInactive",
-        "CaneOfSomaria" => "DarkCaneOfSomaria",
-        "CaneOfByrna" => "DarkCaneOfByrna",
-        "MirrorShield" => "DarkMirrorShield",
-        "Cape" => "DarkCape",
-        "PowerGlove" => "DarkPowerGlove",
-        "TitansMitt" => "DarkTitansMitt",
-        "Flippers" => "DarkFlippers",
-        "BugCatchingNet" => "DarkBugCatchingNet",
-        "RedBoomerang" => "DarkRedBoomerang",
-        "LiftBush" => "DarkLiftBush",
-        "LiftPot" => "DarkLiftPot",
-        "UseBomb" => "DarkUseBomb",
-        "OpenChest" => "DarkOpenChest",
-    ];
+    private static readonly Dictionary<string, string> ITEM_MAP = new Dictionary<string, string> {
+        { "L1Sword", "DarkL1Sword" },
+        { "FireRod", "DarkFireRod" },
+        { "IceRod", "DarkIceRod" },
+        { "Hammer", "DarkHammer" },
+        { "Hookshot", "DarkHookshot" },
+        { "BowAndArrows", "DarkBowAndArrows" },
+        { "Boomerang", "DarkBoomerang" },
+        { "PegasusBoots", "DarkPegasusBoots" },
+        { "Powder", "DarkPowder" },
+        { "ActiveBombos", "DarkActiveBombos" },
+        { "ActiveEther", "DarkActiveEther" },
+        { "ActiveQuake", "DarkActiveQuake" },
+        { "Lamp", "DarkLamp" }, // Lamp for seeing, Lamp for lighting, ??
+        { "Shovel", "DarkShovel" },
+        { "OcarinaInactive", "DarkOcarinaInactive" },
+        { "CaneOfSomaria", "DarkCaneOfSomaria" },
+        { "CaneOfByrna", "DarkCaneOfByrna" },
+        { "MirrorShield", "DarkMirrorShield" },
+        { "Cape", "DarkCape" },
+        { "PowerGlove", "DarkPowerGlove" },
+        { "TitansMitt", "DarkTitansMitt" },
+        { "Flippers", "DarkFlippers" },
+        { "BugCatchingNet", "DarkBugCatchingNet" },
+        { "RedBoomerang", "DarkRedBoomerang" },
+        { "LiftBush", "DarkLiftBush" },
+        { "LiftPot", "DarkLiftPot" },
+        { "UseBomb", "DarkUseBomb" },
+        { "OpenChest", "DarkOpenChest" },
+    };
+
+    private World world;
 
     /**
      * Add all the vertices to the graph for Bunny Dark world.
@@ -43,24 +47,25 @@ sealed class BunnyGraphifier
      * 
      * @return void
      */
-    public function __construct(private World world)
+    public BunnyGraphifier(World world)
     {
-        graph = this.world.graph;
+        this.world = world;
+        var graph = this.world.graph;
 
-        world_id = world.id;
-        moonpearl = graph.newVertex([
-            "name" => "MoonPearl:world_id",
-            "type" => "meta",
-        ]);
-        meta = graph.getVertex("Meta:world_id");
-        graph.addDirected(meta, moonpearl, "MoonPearl:world_id");
+        var world_id = world.id;
+        var moonpearl = graph.newVertex(new() {
+            { "name", "MoonPearl:" + world_id },
+            { "type", "meta" },
+        });
+        var meta = graph.getVertex("Meta:" + world_id);
+        graph.addDirected(meta!, moonpearl, "MoonPearl:" + world_id);
 
-        foreach (var light_item => dark_item in ITEM_MAP) {
-            dark_vertex = graph.newVertex([
-                "name" => "dark_item:world_id",
-                "type" => "meta",
-                "item" => Item.get("dark_item", world_id),
-            ]);
+        foreach (var (light_item, dark_item) in ITEM_MAP) {
+            var dark_vertex = graph.newVertex(new() {
+                { "name", "dark_item:" + world_id },
+                { "type", "meta" },
+                { "item", Item.get("dark_item", world_id) },
+            });
 
             this.world.graph.addDirected(moonpearl, dark_vertex, "light_item:world_id");
         }
@@ -71,42 +76,47 @@ sealed class BunnyGraphifier
      */
     public void adjustEdges()
     {
-        work_queue = new SplQueue();
-        marked = new SplObjectStorage();
-        dark_nodes = array_filter(
-            this.world.graph.getVertices(),
-            fn (Vertex node) => node.moonpearl
-        );
+        var dark_nodes =
+            from vertex in this.world.graph.getVertices()
+            where vertex.moonpearl == true
+            select vertex;
 
-        edge_map = collect(this.world.graph.getEdges())
-            .groupBy(fn (Edge edge) => edge.from.id);
+        var edge_map = this.world.graph.getEdges()
+            .GroupBy(o => o.From)
+            .ToDictionary(g => g.Key, g => g.ToList());
+            //.ToLookup(o => o.From);
 
-        foreach (var node in dark_nodes) {
-            work_queue.enqueue(node);
-        }
+        var work_queue = new Queue<Vertex>(dark_nodes);
+        var marked = new HashSet<Vertex>();
 
-        while (!work_queue.isEmpty()) {
+        while (work_queue.Count > 0) {
             /** @var Vertex node */
-            node = work_queue.dequeue();
+            var node = work_queue.Dequeue();
 
-            if (marked.contains(node)) {
+            if (marked.Contains(node)) {
                 continue;
             }
-            marked.attach(node);
+            marked.Add(node);
 
-            if (!isset(edge_map[node.id])) {
+            if (!edge_map.ContainsKey(node))
+            {
                 continue;
             }
-            /** @var Edge edge */
-            foreach (var edge in edge_map[node.id]) {
-                alt_node = edge.to;
-                if (alt_node.moonpearl != false) {
-                    work_queue.enqueue(alt_node);
 
-                    group = preg_replace("/:\d+/", "", edge.group);
-                    if (!isset(ITEM_MAP[group])) {
+            for (int i = 0; i < edge_map[node].Count; ++i)
+            {
+                var edge = edge_map[node][i];
+                var alt_node = edge.To;
+                if (alt_node.moonpearl != false)
+                {
+                    work_queue.Enqueue(alt_node);
+                    var group = Regex.Replace(edge.Group, ":\\d+", "");
+                    if (!ITEM_MAP.ContainsKey(group))
+                    {
                         continue;
                     }
+
+                    edge.Group = ITEM_MAP[group] + ":" + this.world.id;
                 }
             }
         }
