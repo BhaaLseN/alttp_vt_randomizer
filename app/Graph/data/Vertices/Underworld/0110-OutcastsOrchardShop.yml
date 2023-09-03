@@ -3,25 +3,23 @@ rooms:
     nodes:
       regions:
         - name: "Outcasts Orchard Shop"
+          type: "shop"
           inletid: 0x57
 
-      items:
+      inventory:
         - name: "Outcasts Orchard Shop - Left"
-          addresses: []
           type: "shopitem"
           cost: 500
           item: "RedShield"
           itemset: ["dw", "shop"]
 
         - name: "Outcasts Orchard Shop - Middle"
-          addresses: []
           type: "shopitem"
           cost: 10
           item: "Bee"
           itemset: ["dw", "shop"]
 
         - name: "Outcasts Orchard Shop - Right"
-          addresses: []
           type: "shopitem"
           cost: 30
           item: "TenArrows"

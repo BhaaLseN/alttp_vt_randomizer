@@ -31,7 +31,6 @@ rooms:
           sprite: "@ArrowRefill5"
         - name: "Thieves' Town - Cells - Pot 1"
           position: 0x0b5c
-          xposition: { x: 0x2e, y: 0x16, z: 0x00 }
         - name: "Thieves' Town - Cells - Pot 2"
           position: 0x0b6c
           sprite: "@Heart"

@@ -8,23 +8,20 @@ rooms:
           shopstyle: 0x03
           inletid: 0x58
 
-      items:
+      inventory:
         - name: "Lake Hylia Shop - Left"
-          addresses: []
           type: "shopitem"
           cost: 150
           item: "RedPotion"
           itemset: ["lw", "shop"]
 
         - name: "Lake Hylia Shop - Middle"
-          addresses: []
           type: "shopitem"
           cost: 10
           item: "Heart"
           itemset: ["lw", "shop"]
 
         - name: "Lake Hylia Shop - Right"
-          addresses: []
           type: "shopitem"
           cost: 50
           item: "TenBombs"
