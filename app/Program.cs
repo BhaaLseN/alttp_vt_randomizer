@@ -3,7 +3,7 @@ using System.CommandLine;
 using App.Console.Commands;
 using App.Graph;
 
-YamlReader.DataRoot = Path.GetFullPath(@"..\..\..\Graph\data");
+YamlReader.DataRoot = Path.GetFullPath(@"../../../Graph/data");
 
 var alttpr = new RootCommand("The Legend of Zelda: A Link to the Past Randomizer");
 alttpr.AddCommand(new Randomize());
