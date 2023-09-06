@@ -12,11 +12,11 @@ sealed class Graph
 {
     private readonly List<Vertex> vertices = new();
     private readonly Dictionary<string, Vertex> vertices_name = new();
-    private readonly ConcurrentDictionary<Vertex, List<Vertex>> visited = new();
-    private readonly Dictionary<Vertex, List<Vertex>> adjency_matrix = new();
+    private readonly ConcurrentDictionary<Vertex, HashSet<Vertex>> visited = new();
+    private readonly Dictionary<Vertex, HashSet<Vertex>> adjency_matrix = new();
     private readonly List<Edge> edges = new();
-    private readonly ConcurrentDictionary<Vertex, List<Vertex>> marked = new();
-    private readonly ConcurrentDictionary<Vertex, List<Vertex>> peg_marked = new();
+    private readonly ConcurrentDictionary<Vertex, HashSet<Vertex>> marked = new();
+    private readonly ConcurrentDictionary<Vertex, HashSet<Vertex>> peg_marked = new();
     private readonly List<Vertex> recheck_nodes = new();
 
     /**
@@ -90,7 +90,7 @@ sealed class Graph
     {
         this.vertices.Add(vertex);
         this.vertices_name[vertex.name] = vertex;
-        this.adjency_matrix.Add(vertex, new List<Vertex>());
+        this.adjency_matrix.Add(vertex, new());
     }
 
     public Vertex? getTargetVertex(Vertex vertex)
