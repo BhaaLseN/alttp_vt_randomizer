@@ -8,18 +8,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Remove="Graph\BossShuffler.cs" />
-    <Compile Remove="Graph\EnemyShuffler.cs" />
-    <Compile Remove="Graph\EntranceShuffler.cs" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <None Include="Graph\BossShuffler.cs" />
-    <None Include="Graph\EnemyShuffler.cs" />
-    <None Include="Graph\EntranceShuffler.cs" />
-  </ItemGroup>
-
-  <ItemGroup>
     <PackageReference Include="System.CommandLine" Version="2.0.0-beta4.22272.1" />
     <PackageReference Include="YamlDotNet" Version="13.3.1" />
   </ItemGroup>

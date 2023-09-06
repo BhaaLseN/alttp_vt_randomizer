@@ -25,7 +25,7 @@ sealed class PrizePackShuffler
 
         if (!this.world.config("customPrizePacks", false))
         {
-            var random_vanilla_packs = new Stack<string>(new[]
+            var random_vanilla_packs = new Stack<string>(PHP.fy_shuffle(new[]
             {
                 new[] { "Heart", "Heart", "Heart", "Heart", "RupeeGreen", "Heart", "Heart", "RupeeGreen" },
                 new[] { "RupeeBlue", "RupeeGreen", "RupeeBlue", "RupeeRed", "RupeeBlue", "RupeeGreen", "RupeeBlue", "RupeeBlue" },
@@ -34,7 +34,7 @@ sealed class PrizePackShuffler
                 new[] { "ArrowRefill5", "Heart", "ArrowRefill5", "ArrowRefill10", "ArrowRefill5", "Heart", "ArrowRefill5", "ArrowRefill10" },
                 new[] { "MagicRefillSmall", "RupeeGreen", "Heart", "ArrowRefill5", "MagicRefillSmall", "BombRefill1", "RupeeGreen", "Heart" },
                 new[] { "Heart", "Fairy", "MagicRefillFull", "RupeeRed", "BombRefill8", "Heart", "RupeeRed", "ArrowRefill10" },
-            }.Shuffle().SelectMany(s => s));
+            }).SelectMany(s => s));
 
             var prizepacksOrdered = prizepacks.OrderBy(v => v.offset);
             foreach (var pack in prizepacksOrdered)
@@ -61,7 +61,7 @@ sealed class PrizePackShuffler
             {
                 drops.AddRange(Enumerable.Repeat(Sprite.get(sprite_name), Math.Min(this.world.config("drop.count." + sprite_name, count), 63)));
             }
-            var drop_pool = new Stack<Sprite>(drops.Shuffle());
+            var drop_pool = new Stack<Sprite>(PHP.fy_shuffle(drops.ToArray()));
 
             foreach (var pack in emptypacks)
             {

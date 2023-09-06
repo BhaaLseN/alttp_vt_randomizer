@@ -120,11 +120,11 @@ sealed class ItemPooler
                 int fill_count;
                 if (world.config<string>("goal") is "triforce-hunt" or "pedestal")
                 {
-                    fill_count = Random.Shared.Next((int)(15 * crystal_ratio), (int)(25 * crystal_ratio));
+                    fill_count = PHP.get_random_int((int)(15 * crystal_ratio), (int)(25 * crystal_ratio));
                 }
                 else
                 {
-                    fill_count = Random.Shared.Next((int)(15 * crystal_ratio));
+                    fill_count = PHP.get_random_int((int)(15 * crystal_ratio));
                 }
                 if (fill_count > 0)
                 {
@@ -184,7 +184,7 @@ sealed class ItemPooler
                 {
                     { 0, new List<Item>
                         {
-                            Item.get(new [] { "MireEntryBombos", "MireEntryEther", "MireEntryQuake" }[Random.Shared.Next(2)], world.id),
+                            Item.get(new [] { "MireEntryBombos", "MireEntryEther", "MireEntryQuake" }[PHP.get_random_int(2)], world.id),
                         }
                     },
                 }
@@ -193,7 +193,7 @@ sealed class ItemPooler
                 {
                     { 0, new List<Item>
                         {
-                            Item.get(new [] { "TurtleRockEntryBombos", "TurtleRockEntryEther", "TurtleRockEntryQuake" }[Random.Shared.Next(2)], world.id),
+                            Item.get(new [] { "TurtleRockEntryBombos", "TurtleRockEntryEther", "TurtleRockEntryQuake" }[PHP.get_random_int(2)], world.id),
                         }
                     },
                 }
@@ -611,8 +611,8 @@ sealed class ItemPooler
                 {
                     { 0, new List<Item>
                          {
-                             Item.get("Fairy" + bottles[Random.Shared.Next(bottles.Length)], world.id),
-                             Item.get("Fairy" + bottles[Random.Shared.Next(bottles.Length)], world.id),
+                             Item.get("Fairy" + bottles[PHP.get_random_int(bottles.Length)], world.id),
+                             Item.get("Fairy" + bottles[PHP.get_random_int(bottles.Length)], world.id),
                          }
                     },
                 }
@@ -620,12 +620,12 @@ sealed class ItemPooler
             { "*",
                 new WeightedSet()
                 {
-                    { 3, new List<Item> { Item.get(bottles[Random.Shared.Next(bottles.Length)], world.id) } },
+                    { 3, new List<Item> { Item.get(bottles[PHP.get_random_int(bottles.Length)], world.id) } },
                     { 9001, new List<Item>
                             {
-                                Item.get(bottles[Random.Shared.Next(bottles.Length)], world.id),
-                                Item.get(bottles[Random.Shared.Next(bottles.Length)], world.id),
-                                Item.get(bottles[Random.Shared.Next(bottles.Length)], world.id),
+                                Item.get(bottles[PHP.get_random_int(bottles.Length)], world.id),
+                                Item.get(bottles[PHP.get_random_int(bottles.Length)], world.id),
+                                Item.get(bottles[PHP.get_random_int(bottles.Length)], world.id),
                             }
                     },
                 }

@@ -84,10 +84,6 @@ sealed class Randomize : Command
 #if do_the_rom_stuff
         var hasher = new Hashids("local", 15);
 
-        int seed = 419847641; // mt_rand();
-        mt_srand(seed);
-        this.info($"Seed: {seed}");
-
         var output_directory = context.ParseResult.GetValueForArgument(_output_directory);
         string filename = Path.Combine(output_directory.FullName, string.Format("alttpr_{0}_{1}_{2}_{{0}}.{{1}}",
             context.ParseResult.GetValueForOption(_glitches),
@@ -153,10 +149,10 @@ sealed class Randomize : Command
 
             string? crystals_ganonS = context.ParseResult.GetValueForOption(_crystals_ganon);
             if (crystals_ganonS == "random" || !int.TryParse(crystals_ganonS, out int crystals_ganon))
-                crystals_ganon = Random.Shared.Next(0, 7);
+                crystals_ganon = PHP.get_random_int(0, 7);
             string? crystals_towerS = context.ParseResult.GetValueForOption(_crystals_tower);
             if (crystals_towerS == "random" || !int.TryParse(crystals_towerS, out int crystals_tower))
-                crystals_tower = Random.Shared.Next(0, 7);
+                crystals_tower = PHP.get_random_int(0, 7);
             var logic = context.ParseResult.GetValueForOption(_glitches);
 
             var randomizer = new Randomizer(new[] { new Dictionary<string, object>()

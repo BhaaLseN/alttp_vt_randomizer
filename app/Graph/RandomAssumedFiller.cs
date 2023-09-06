@@ -32,15 +32,24 @@ sealed class RandomAssumedFiller
     {
         var set_counts = items.ToDictionary(k => k.Key, set => set.Value.SelectMany(x => x.Value).Count());
 
-        var flat_items = items
+        //var flat_items = items
+        //    .SelectMany(set => set.Value.SelectMany(weight => weight.Value
+        //        .Select(item => (Set: set.Key, Weight: weight.Key, Item: item))))
+        //    .Shuffle()
+        //    // fix placement groups
+        //    .OrderBy(i => i.Weight)
+        //    .ToList();
+        var flat_items_a = items
             .SelectMany(set => set.Value.SelectMany(weight => weight.Value
                 .Select(item => (Set: set.Key, Weight: weight.Key, Item: item))))
-            .Shuffle()
-            // fix placement groups
-            .OrderBy(i => i.Weight)
-            .ToList();
+            .ToArray();
+        flat_items_a = PHP.fy_shuffle(flat_items_a).OrderBy(i => i.Weight).ToArray();
+        // fix placement groups
+        //Array.Sort(flat_items_a, (a, b) => a.Weight - b.Weight);
+        var flat_items = flat_items_a.ToList();
 
-        foreach (var item_key in flat_items.ToArray())
+        foreach (var item_key in flat_items_a)
+        //foreach (var item_key in flat_items.ToArray())
         {
             var (item_set, item_weight, item) = item_key;
             if (item_weight > 9000)
@@ -60,7 +69,7 @@ sealed class RandomAssumedFiller
                 throw new Exception($"No locations for: {item}");
             }
 
-            var location = locations.Shuffle().First();
+            var location = PHP.get_random_element(locations);
             System.Console.WriteLine("[{0}] [{1}] Placing `{2}` in `{3}` ({4}:{5})",
                 item_weight,
                 required ? "R" : " ",
@@ -98,10 +107,11 @@ sealed class RandomAssumedFiller
 
         string current_key = "";
         var locations = new List<Vertex>();
-        foreach (var (item_set, _, item) in fill_items) {
+        foreach (var (item_set, _, item) in fill_items)
+        {
             if (current_key != item_set)
             {
-                locations = this.randomizer.getEmptyLocationsInSet(item_set, null, false).Shuffle().ToList();
+                locations = PHP.fy_shuffle(this.randomizer.getEmptyLocationsInSet(item_set, null, false).ToArray()).ToList();
                 current_key = item_set;
             }
 
