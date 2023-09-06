@@ -5,7 +5,7 @@ namespace App.Graph;
  */
 sealed class EntranceShuffler
 {
-    private readonly array definition;
+    private readonly Entrances definition;
     private readonly World world;
 
     /**
@@ -18,25 +18,17 @@ sealed class EntranceShuffler
     public EntranceShuffler(World world)
     {
         this.world = world;
-        definition = world.config<string>("entrances") switch {
-            "simple" => "simple.yml",
-            "restricted" => "vanilla.yml",
-            "full" => "vanilla.yml",
-            "crossed" => "vanilla.yml",
-            "insanity" => "vanilla.yml",
-            "none" => "vanilla.yml",
-            _ => world.config<string>("entrances") ?? "vanilla.yml",
+        var definition_name = world.config<string>("entrances") switch {
+            "simple" => "simple",
+            "restricted" => "vanilla",
+            "full" => "vanilla",
+            "crossed" => "vanilla",
+            "insanity" => "vanilla",
+            "none" => "vanilla",
+            _ => world.config<string>("entrances") ?? "vanilla",
         };
 
-        if (is_string(definition) && is_readable(app_path("Graph/data/Edges/entrances/" + definition))) {
-            definition = Yaml.parse(file_get_contents(app_path("Graph/data/Edges/entrances/" + definition)));
-        }
-
-        if (!is_array(definition)) {
-            throw new Exception("No valid entrance definition found");
-        }
-
-        this.definition = definition;
+        this.definition = YamlReader.LoadEntrances(definition_name);
     }
 
     /**
@@ -44,32 +36,21 @@ sealed class EntranceShuffler
      */
     public void adjustEdges()
     {
-        world_id = this.world.id;
-        foreach (var connection in this.definition["fixed"]) {
-            from = this.world.graph.getVertex($"{connection[0]}:{world_id}");
-            to = this.world.graph.getVertex($"{connection[1]}:{world_id}");
-            if (
-                !from instanceof Vertex
-                || !to instanceof Vertex
-            ) {
-                dd([
-                    "ER",
-                    connection,
-                    from,
-                    to,
-                ]);
-            }
+        var world_id = this.world.id;
+        foreach (var connection in this.definition.Fixed) {
+            var from = this.world.graph.getVertex($"{connection[0]}:{world_id}");
+            var to = this.world.graph.getVertex($"{connection[1]}:{world_id}");
             this.world.graph.addDirected(from, to, $"fixed:{world_id}");
         }
-
-        foreach (var group in this.definition["connections"]) {
-            ins = fy_shuffle(group["in"]);
-            outs = fy_shuffle(group["out"]);
-            if (count(ins) != count(outs)) {
+        /* TODO: Let's only do vanilla in the meantime...
+        foreach (var group in this.definition.Connections) {
+            var ins = PHP.fy_shuffle(group.In.ToArray());
+            var outs = PHP.fy_shuffle(group.Out.ToArray());
+            if (ins.Length != outs.Length) {
                 throw new Exception("Entrance count mismatch");
             }
 
-            while (count(ins)) {
+            while (ins.Length > 0) {
                 in_items = Arr.wrap(array_pop(ins));
                 out_items = Arr.wrap(array_pop(outs));
                 if (count(in_items) != count(out_items)) {
@@ -83,5 +64,6 @@ sealed class EntranceShuffler
                 }
             }
         }
+        */
     }
 }

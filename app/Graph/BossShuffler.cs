@@ -1,10 +1,5 @@
 namespace App.Graph;
 
-public sealed class YamlSprite
-{
-    public Dictionary<string, object?> ToDictionary() => new(); // FIXME: read this from YAML.
-}
-
 /**
  * Modify the edges of the graph to place bosses.
  */
@@ -75,7 +70,7 @@ sealed class BossShuffler
         { "Ganon's Tower - Ice Armos", "Ganon's Tower - Ice Room" },
     };
 
-    private Dictionary<string, ILookup<string, YamlSprite>> boss_location_map;
+    private Dictionary<string, Dictionary<string, List<YamlSprite>>> boss_location_map;
     private readonly World world;
 
     /**
@@ -88,9 +83,8 @@ sealed class BossShuffler
     public BossShuffler(World world)
     {
         this.world = world;
-        this.boss_location_map = Yaml.parse(
-            file_get_contents(app_path("Graph/data/Bosses/SpriteLocations.yml"))
-         ?? []).keyBy((item, key) => $"{key}:{world.id}");
+        this.boss_location_map = YamlReader.LoadSpriteLocations()
+            .ToDictionary(x => $"{x.Key}:{world.id}", x => x.Value);
     }
 
     /**
@@ -247,7 +241,7 @@ sealed class BossShuffler
         foreach (var sprite_definition in this.boss_location_map[bossRoom.name][boss])
         {
             this.world.graph.newVertex(
-                sprite_definition.ToDictionary().Merge(new Dictionary<string, object>()
+                sprite_definition.AsDictionary().Merge(new Dictionary<string, object>()
                 {
                     { "type", "mob" },
                     //{ "sprite", Sprite.get(sprite_definition["sprite"]) },

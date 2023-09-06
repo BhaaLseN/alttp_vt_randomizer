@@ -1,4 +1,6 @@
-﻿using System.Xml.Linq;
+﻿using System.Diagnostics;
+using System.IO;
+using System.Xml.Linq;
 using YamlDotNet.Serialization;
 
 namespace App.Graph;
@@ -9,6 +11,8 @@ public class YamlReader
 
     public static string ItemsPath = "items.yml";
     public static string VerticesPath = "Vertices";
+    public static string EnemiesPath = "Enemizer/enemies.yml";
+    public static string SpriteLocationsPath = "Bosses/SpriteLocations.yml";
 
     class YamlItem
     {
@@ -116,8 +120,55 @@ public class YamlReader
         dest.Maps.AddRange(source.Maps);
         dest.Rooms.AddRange(source.Rooms);
     }
+
+    public static Dictionary<string, List<String>> LoadEnemies()
+    {
+        string enemies_yml = Path.Join(DataRoot, EnemiesPath);
+        using (TextReader reader = File.OpenText(enemies_yml))
+        {
+            var deserializer = new DeserializerBuilder().Build();
+            return deserializer.Deserialize<Dictionary<string, List<string>>>(reader);
+        }
+    }
+
+    public static Dictionary<string, Dictionary<string, List<YamlSprite>>> LoadSpriteLocations()
+    {
+        string sprites_yml = Path.Join(DataRoot, SpriteLocationsPath);
+        using (TextReader reader = File.OpenText(sprites_yml))
+        {
+            var deserializer = new DeserializerBuilder().Build();
+            return deserializer.Deserialize<Dictionary<string, Dictionary<string, List<YamlSprite>>>>(reader);
+        }
+    }
 }
 
+public class YamlSprite
+{
+    [YamlMember(Alias = "name")]
+    public string Name { get; set; }
+
+    [YamlMember(Alias = "position")]
+    public Position Position { get; set; }
+
+    [YamlMember(Alias = "roomid")]
+    public int Roomid { get; set; }
+
+    [YamlMember(Alias = "sprite")]
+    public string Sprite { get; set; }
+
+    public Dictionary<string, object> AsDictionary()
+    {
+        var result = new Dictionary<string, object>
+        {
+            { "name", Name },
+            { "position", Position },
+            { "roomid", Roomid },
+            { "sprite", Sprite },
+        };
+
+        return result;
+    }
+}
 
 public class DirectedUndirectedPair
 {

@@ -87,7 +87,6 @@ sealed class Randomizer
             var shop_filler = new ShopFiller(this.worlds[i]);
             shop_filler.adjustEdges();
 
-#if enabled
             var entrance_shuffler = new EntranceShuffler(this.worlds[i]);
             entrance_shuffler.adjustEdges();
 
@@ -99,7 +98,7 @@ sealed class Randomizer
             // This will handle challenge rooms
             var enemy_shuffler = new EnemyShuffler(this.worlds[i]);
             enemy_shuffler.adjustEdges();
-#endif
+
             var bunnifier = new BunnyGraphifier(this.worlds[i]);
             bunnifier.adjustEdges();
 

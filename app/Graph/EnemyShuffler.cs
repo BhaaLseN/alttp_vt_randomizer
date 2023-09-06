@@ -264,8 +264,8 @@ sealed class EnemyShuffler
     };
 
     private readonly Dictionary<string, List<string>> defeats = new();
-    private readonly array challenge_enemies;
-    private readonly List<string> no_place_sprites;
+    //private readonly array challenge_enemies;
+    //private readonly List<string> no_place_sprites;
 
     private readonly World world;
 
@@ -284,9 +284,9 @@ sealed class EnemyShuffler
     public EnemyShuffler(World world)
     {
         this.world = world;
-        this.defeats = Yaml.parse(file_get_contents(app_path("Graph/data/Enemizer/enemies.yml"))) ?? [];
-        this.challenge_enemies = Yaml.parse(file_get_contents(app_path("Graph/data/Enemizer/challenge.yml"))) ?? [];
-        this.no_place_sprites = Yaml.parse(file_get_contents(app_path("Graph/data/Enemizer/noplace.yml"))) ?? [];
+        this.defeats = YamlReader.LoadEnemies();
+        //this.challenge_enemies = Yaml.parse(file_get_contents(app_path("Graph/data/Enemizer/challenge.yml"))) ?? [];
+        //this.no_place_sprites = Yaml.parse(file_get_contents(app_path("Graph/data/Enemizer/noplace.yml"))) ?? [];
 
         int world_id = this.world.id;
         foreach (var token in this.defeats.Keys)
@@ -298,7 +298,7 @@ sealed class EnemyShuffler
                 { "item", Item.get(token, world_id) },
             });
         }
-
+#if false
         var enemies = world.getLocationsOfType("mob");
 
         /** @var array enemy_rooms */
@@ -580,6 +580,7 @@ sealed class EnemyShuffler
             { "overworld", ow_sheets },
             { "sets", sheet_sets },
         };
+#endif
     }
 
     /**
