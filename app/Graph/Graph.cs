@@ -14,7 +14,7 @@ sealed class Graph
     private readonly Dictionary<string, Vertex> vertices_name = new();
     private readonly ConcurrentDictionary<Vertex, HashSet<Vertex>> visited = new();
     private readonly Dictionary<Vertex, HashSet<Vertex>> adjency_matrix = new();
-    private readonly List<Edge> edges = new();
+    private readonly HashSet<Edge> edges = new();
     private readonly ConcurrentDictionary<Vertex, HashSet<Vertex>> marked = new();
     private readonly ConcurrentDictionary<Vertex, HashSet<Vertex>> peg_marked = new();
     private readonly List<Vertex> recheck_nodes = new();
