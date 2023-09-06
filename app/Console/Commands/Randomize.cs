@@ -16,8 +16,8 @@ sealed class Randomize : Command
     private readonly Option<HeartBeepSpeed> _heartbeep = new("heartbeep", "set heart beep speed");
     private readonly Option<HeartColor> _heartcolor = new("heartcolor", "set heart color");
     private readonly Option<MenuSpeed> _menuspeed = new("menu-speed", "menu speed");
-    private readonly Option<GameGoal> _goal = new("goal", "set game goal");
-    private readonly Option<GameState> _state = new("state", "set game state");
+    private readonly Option<GameGoal> _goal = new("goal", () => GameGoal.Ganon, "set game goal");
+    private readonly Option<GameState> _state = new("state", () => GameState.Standard, "set game state");
     private readonly Option<WeaponMode> _weapons = new("weapons", "set weapons mode");
     private readonly Option<GlitchedMode> _glitches = new("glitches", "set glitches");
     private readonly Option<ItemPlacement> _item_placement = new("item_placement", "set item placement rules");
@@ -32,8 +32,8 @@ sealed class Randomize : Command
     private readonly Option<bool> _norom = new("no-rom", "do not generate output ROM");
     private readonly Option<int> _bulk = new("bulk", "generate multiple ROMs");
     private static readonly string[] _crystalAmount = { "random", "0", "1", "2", "3", "4", "5", "6", "7" };
-    private readonly Option<string> _crystals_ganon = new Option<string>("crystals_ganon", "set ganon crystal requirement").FromAmong(_crystalAmount);
-    private readonly Option<string> _crystals_tower = new Option<string>("crystals_tower", "set ganon tower crystal requirement").FromAmong(_crystalAmount);
+    private readonly Option<string> _crystals_ganon = new Option<string>("crystals_ganon", () => "7", "set ganon crystal requirement").FromAmong(_crystalAmount);
+    private readonly Option<string> _crystals_tower = new Option<string>("crystals_tower", () => "7", "set ganon tower crystal requirement").FromAmong(_crystalAmount);
     private readonly Option<FileInfo> _sprite = new("sprite", "sprite file to change links graphics [zspr format]");
     private readonly Option<bool> _quickswap = new("quickswap", "set quickswap");
 
@@ -318,8 +318,8 @@ sealed class Randomize : Command
 public enum HeartBeepSpeed { Off, Half, Quarter, Double, Normal }
 public enum HeartColor { Random, Blue, Green, Yellow, Red }
 public enum MenuSpeed { }
-public enum GameGoal { }
-public enum GameState { }
+public enum GameGoal { Ganon, Fast_Ganon, Dungeons, Pedestal }
+public enum GameState { Standard, Inverted, Open }
 public enum WeaponMode { }
 public enum GlitchedMode
 {
