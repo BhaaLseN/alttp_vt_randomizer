@@ -5,7 +5,7 @@ namespace App.Graph;
 /**
  * Model of a world in which a player would be playing.
  */
-sealed class World
+public sealed class World
 {
     public readonly int id;
     public readonly Graph graph;

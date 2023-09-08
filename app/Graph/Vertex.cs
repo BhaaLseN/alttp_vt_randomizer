@@ -11,7 +11,7 @@ public record class Sprite(string Name)
 /**
  * Vertex in Graph.
  */
-sealed class Vertex
+public sealed class Vertex
 {
     public readonly string type;
     public readonly string name;

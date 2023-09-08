@@ -7,7 +7,7 @@ namespace App.Graph;
  *
  * @immutable
  */
-sealed class Inventory
+public sealed class Inventory
 {
     private readonly ConcurrentDictionary<string, int> item_count = new();
     /** @var array<float> */

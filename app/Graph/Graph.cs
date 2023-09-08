@@ -8,7 +8,7 @@ namespace App.Graph;
  * the graph, so there is no need to consider removal of edges/vertices. And all
  * edges must be directed!
  */
-sealed class Graph
+public sealed class Graph
 {
     private readonly List<Vertex> vertices = new();
     private readonly Dictionary<string, Vertex> vertices_name = new();

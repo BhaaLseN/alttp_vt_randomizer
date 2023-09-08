@@ -3,7 +3,7 @@ namespace App.Graph;
 /**
  * An Item is any collectable thing in game.
  */
-sealed class Item
+public sealed class Item
 {
     public readonly byte[] bytes;
     public readonly string raw_name;

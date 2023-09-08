@@ -9,7 +9,7 @@ namespace App.Graph;
  *
  * Walk thru walls: 7E037F01
  */
-sealed class Randomizer
+public sealed class Randomizer
 {
     private static readonly string[] ITEM_LOCATIONS = {
         "bigchest",
