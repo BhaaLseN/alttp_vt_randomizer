@@ -7,7 +7,33 @@ namespace App.Graph;
 
 public class YamlReader
 {
-    public static string DataRoot { get; set; } = "";
+    private static string data_root_;
+    public static string DataRoot
+    {
+        get
+        {
+            if (data_root_ == null)
+            {
+                DirectoryInfo current_directory = new(Directory.GetCurrentDirectory());
+
+                do
+                {
+                    string data_root = Path.Combine(current_directory.FullName, "app/Graph/data");
+                    if (Directory.Exists(data_root))
+                    {
+                        data_root_ = data_root;
+                        break;
+                    }
+                    current_directory = current_directory.Parent;
+                } while (current_directory.Parent != null);
+            }
+            return data_root_;
+        }
+        set
+        {
+            data_root_ = value;
+        }
+    }
 
     public static string ItemsPath = "items.yml";
     public static string VerticesPath = "Vertices";
@@ -21,7 +47,7 @@ public class YamlReader
 
     public static Dictionary<string, byte[]> LoadItems()
     {
-        string items_yml = Path.Join(DataRoot, ItemsPath);
+        string items_yml = Path.Combine(DataRoot, ItemsPath);
 
         Dictionary<string, byte[]> result = new Dictionary<string, byte[]>();
 
@@ -39,12 +65,21 @@ public class YamlReader
         return result;
     }
 
-    public static Dictionary<string, DirectedUndirectedPair> LoadEdgesFromFile(string path)
+    public static Dictionary<string, DirectedUndirectedPair> LoadEdgesFromTech(string name)
     {
-        string edges_yml = Path.IsPathFullyQualified(path) ? path : Path.Join(DataRoot, path);
+        string edges_yml = Path.Combine(DataRoot, "Edges/tech", name + ".yml"); ;
 
         var deserializer = new DeserializerBuilder().Build();
         using (TextReader reader = File.OpenText(edges_yml))
+        {
+            return deserializer.Deserialize<Dictionary<string, DirectedUndirectedPair>>(reader);
+        }
+    }
+
+    private static Dictionary<string, DirectedUndirectedPair> LoadEdgesFromFile(string path)
+    {
+        var deserializer = new DeserializerBuilder().Build();
+        using (TextReader reader = File.OpenText(path))
         {
             return deserializer.Deserialize<Dictionary<string, DirectedUndirectedPair>>(reader);
         }
@@ -54,7 +89,7 @@ public class YamlReader
     {
         Dictionary<string, DirectedUndirectedPair> result = new Dictionary<string, DirectedUndirectedPair>();
 
-        foreach (string file in Directory.GetFiles(Path.Join(DataRoot, path), "*.yml", SearchOption.AllDirectories))
+        foreach (string file in Directory.GetFiles(Path.Combine(DataRoot, path), "*.yml", SearchOption.AllDirectories))
         {
             var current_file_edges = LoadEdgesFromFile(file);
             MergeEdges(result, current_file_edges);
@@ -84,7 +119,7 @@ public class YamlReader
 
     public static Entrances LoadEntrances(string name)
     {
-        string entrances_yml = Path.Join(DataRoot, "Edges/entrances", name + ".yml");
+        string entrances_yml = Path.Combine(DataRoot, "Edges/entrances", name + ".yml");
         var deserializer = new DeserializerBuilder().Build();
         using (TextReader reader = File.OpenText(entrances_yml))
         {
@@ -94,7 +129,7 @@ public class YamlReader
 
     public static Vertices LoadVerticesFromFile(string path)
     {
-        string vertices_yml = Path.IsPathFullyQualified(path) ? path : Path.Join(DataRoot, path);
+        string vertices_yml = Path.IsPathFullyQualified(path) ? path : Path.Combine(DataRoot, path);
         using (TextReader reader = File.OpenText(vertices_yml))
         {
             var deserializer = new DeserializerBuilder().Build();
@@ -106,7 +141,7 @@ public class YamlReader
     {
         Vertices result = new();
 
-        foreach (string file in Directory.GetFiles(Path.Join(DataRoot, VerticesPath), "*.yml", SearchOption.AllDirectories))
+        foreach (string file in Directory.GetFiles(Path.Combine(DataRoot, VerticesPath), "*.yml", SearchOption.AllDirectories))
         {
             var current_file_edges = LoadVerticesFromFile(file);
             MergeVertices(result, current_file_edges);
@@ -123,7 +158,7 @@ public class YamlReader
 
     public static Dictionary<string, List<String>> LoadEnemies()
     {
-        string enemies_yml = Path.Join(DataRoot, EnemiesPath);
+        string enemies_yml = Path.Combine(DataRoot, EnemiesPath);
         using (TextReader reader = File.OpenText(enemies_yml))
         {
             var deserializer = new DeserializerBuilder().Build();
@@ -133,7 +168,7 @@ public class YamlReader
 
     public static Dictionary<string, Dictionary<string, List<YamlSprite>>> LoadSpriteLocations()
     {
-        string sprites_yml = Path.Join(DataRoot, SpriteLocationsPath);
+        string sprites_yml = Path.Combine(DataRoot, SpriteLocationsPath);
         using (TextReader reader = File.OpenText(sprites_yml))
         {
             var deserializer = new DeserializerBuilder().Build();

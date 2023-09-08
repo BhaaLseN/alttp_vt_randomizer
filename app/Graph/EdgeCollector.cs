@@ -45,7 +45,7 @@ class EdgeCollector
 
         foreach (var tech in world.config("tech", Enumerable.Empty<string>()))
         {
-            YamlReader.MergeEdges(edges_data, YamlReader.LoadEdgesFromFile("Edges/tech/" + tech + ".yml"));
+            YamlReader.MergeEdges(edges_data, YamlReader.LoadEdgesFromTech(tech));
         }
 
         var return_data = new Dictionary<string, DirectedUndirectedPair>();
