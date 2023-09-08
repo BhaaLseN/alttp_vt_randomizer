@@ -16,6 +16,8 @@
 /docs
 /report
 /.idea
+**/bin/
+**/obj/
 .env
 .env.debug
 .phpunit.result.cache
