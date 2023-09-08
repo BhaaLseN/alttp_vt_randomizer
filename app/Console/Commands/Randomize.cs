@@ -1,5 +1,6 @@
 using System.CommandLine;
 using System.CommandLine.Invocation;
+using System.Diagnostics;
 using App.Graph;
 
 namespace App.Console.Commands;
@@ -107,6 +108,7 @@ sealed class Randomize : Command
 
         int bulk = Math.Max(context.ParseResult.GetValueForOption(_bulk), 1);
 
+        var sw = Stopwatch.StartNew();
         for (int i = 0; i < bulk; i++)
         {
 #if do_the_rom_stuff
@@ -270,6 +272,7 @@ sealed class Randomize : Command
             }
 #endif
         }
+        this.info("Randomization took {0}", sw.Elapsed);
 
         //this.info(vsprintf("Peak Memory: %d", [
         //    memory_get_peak_usage(true),
