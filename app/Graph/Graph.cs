@@ -318,6 +318,8 @@ public sealed class Graph
     }
     private Graph(Graph other)
     {
+        // FIXME: adjacency_matrix, marked/peg_marked and visited are not deep copies,
+        //        so they mutate a Graph that should be immutable
         adjency_matrix = new(other.adjency_matrix);
         edges = new(other.edges);
         marked = new(other.marked);
