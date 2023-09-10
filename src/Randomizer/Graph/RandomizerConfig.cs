@@ -4,7 +4,7 @@ using System.Collections.Generic;
 
 public class RandomizerConfig
 {
-    // TODO: Align this with current website which broke it down until multiple settings.
+    // TODO: Align this with current website which broke it down to multiple settings.
     // See https://github.com/sporchia/alttp_vt_randomizer/pull/951
     public int RomHardMode { get; init; } = 0;
 
